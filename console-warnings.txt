@@ -1,0 +1,6 @@
+Total messages: 6 (Errors: 0, Warnings: 3)
+Returning 3 messages for level "warning"
+
+[WARNING] [expo-notifications] Listening to push token changes is not yet fully supported on web. Adding a listener will have no effect. @ http://localhost:8082/index.ts.bundle?platform=web&dev=true&hot=false&lazy=true&transform.engine=hermes&transform.routerRoot=app&unstable_transformProfile=hermes-stable:1498
+[WARNING] "shadow*" style props are deprecated. Use "boxShadow". @ http://localhost:8082/index.ts.bundle?platform=web&dev=true&hot=false&lazy=true&transform.engine=hermes&transform.routerRoot=app&unstable_transformProfile=hermes-stable:1498
+[WARNING] props.pointerEvents is deprecated. Use style.pointerEvents @ http://localhost:8082/index.ts.bundle?platform=web&dev=true&hot=false&lazy=true&transform.engine=hermes&transform.routerRoot=app&unstable_transformProfile=hermes-stable:1498

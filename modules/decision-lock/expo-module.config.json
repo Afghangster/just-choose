@@ -1,0 +1,9 @@
+{
+  "platforms": ["ios", "android"],
+  "ios": {
+    "modules": ["DecisionLockModule"]
+  },
+  "android": {
+    "modules": ["app.justchoose.decisionlock.DecisionLockModule"]
+  }
+}

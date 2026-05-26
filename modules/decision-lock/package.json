@@ -1,0 +1,20 @@
+{
+  "name": "decision-lock-module",
+  "version": "0.1.0",
+  "description": "Native Decision Lock bridge for Just Choose",
+  "main": "index.ts",
+  "types": "index.ts",
+  "private": true,
+  "expo-module": {
+    "ios": {
+      "modules": [
+        "DecisionLockModule"
+      ]
+    },
+    "android": {
+      "modules": [
+        "app.justchoose.decisionlock.DecisionLockModule"
+      ]
+    }
+  }
+}

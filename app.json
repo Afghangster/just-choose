@@ -1,0 +1,54 @@
+{
+  "expo": {
+    "name": "Just Choose",
+    "slug": "just-choose",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./JustChoose.png",
+    "splash": {
+      "image": "./JustChoose.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#ffffff"
+    },
+    "scheme": "justchoose",
+    "userInterfaceStyle": "light",
+    "ios": {
+      "supportsTablet": true,
+      "usesAppleSignIn": true,
+      "bundleIdentifier": "app.justchoose.mobile",
+      "infoPlist": {
+        "NSPhotoLibraryUsageDescription": "Choose decision option images for your private Just Choose cards.",
+        "NSUserNotificationsUsageDescription": "Receive urgent decisions, nudge reminders, and Decision Lock status updates."
+      }
+    },
+    "android": {
+      "package": "app.justchoose.mobile",
+      "adaptiveIcon": {
+        "backgroundColor": "#FFFFFF",
+        "foregroundImage": "./assets/android-icon-foreground.png",
+        "backgroundImage": "./assets/android-icon-background.png",
+        "monochromeImage": "./assets/android-icon-monochrome.png"
+      },
+      "predictiveBackGestureEnabled": false,
+      "permissions": [
+        "POST_NOTIFICATIONS"
+      ]
+    },
+    "plugins": [
+      "expo-apple-authentication",
+      "expo-secure-store",
+      "expo-notifications",
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "Choose decision option images for your private Just Choose cards.",
+          "microphonePermission": false
+        }
+      ],
+      "expo-web-browser"
+    ],
+    "web": {
+      "favicon": "./assets/favicon.png"
+    }
+  }
+}

@@ -1,0 +1,15 @@
+apply plugin: 'com.android.library'
+apply plugin: 'org.jetbrains.kotlin.android'
+
+group = 'app.justchoose.decisionlock'
+version = '0.1.0'
+
+android {
+  namespace 'app.justchoose.decisionlock'
+  compileSdk 36
+
+  defaultConfig {
+    minSdk 23
+    targetSdk 36
+  }
+}
