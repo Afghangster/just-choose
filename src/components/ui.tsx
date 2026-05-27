@@ -13,7 +13,7 @@ import {
   TextInput,
   View,
 } from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
+import { SafeAreaView, type Edge } from "react-native-safe-area-context";
 
 import { useTheme, radii, spacing, typography } from "../theme";
 
@@ -24,12 +24,13 @@ type ScreenProps = {
   footer?: ReactNode;
   onRefresh?: () => void;
   refreshing?: boolean;
+  safeAreaEdges?: Edge[];
 };
 
-export function Screen({ children, title, subtitle, footer, onRefresh, refreshing }: ScreenProps) {
+export function Screen({ children, title, subtitle, footer, onRefresh, refreshing, safeAreaEdges }: ScreenProps) {
   const styles = useStyles();
   return (
-    <SafeAreaView style={styles.safeArea}>
+    <SafeAreaView style={styles.safeArea} edges={safeAreaEdges}>
 
       <ScrollView
         testID="screen-scroll-view"

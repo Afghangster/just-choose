@@ -1,4 +1,3 @@
-import { Image } from "react-native";
 import { createNativeStackNavigator } from "@react-navigation/native-stack";
 
 import {
@@ -19,12 +18,11 @@ import {
   ManageConnectionsScreen,
   SafetyPrivacyScreen,
   SettingsScreen,
+  ThemeSelectionScreen,
   SplashScreen,
 } from "../screens/AppScreens";
 import { useTheme } from "../theme";
 import type { RootStackParamList } from "./types";
-
-const brandIcon = require("../../JustChoose.png");
 
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
@@ -50,16 +48,7 @@ export function AppNavigator() {
       <Stack.Screen name="ConnectionInvite" component={ConnectionInviteScreen} options={{ title: "Invite" }} />
       <Stack.Screen name="JoinConnection" component={JoinConnectionScreen} options={{ title: "Join" }} />
       <Stack.Screen name="ConnectionRequest" component={ConnectionRequestScreen} options={{ title: "Connection request" }} />
-      <Stack.Screen 
-        name="Home" 
-        component={HomeScreen} 
-        options={{ 
-          headerTitle: () => <Image source={brandIcon} style={{ height: 32, width: 100, resizeMode: 'contain' }} />,
-          headerTitleAlign: "center",
-          headerBackVisible: false,
-          headerLeft: () => null
-        }} 
-      />
+      <Stack.Screen name="Home" component={HomeScreen} options={{ headerShown: false }} />
       <Stack.Screen name="History" component={HistoryScreen} options={{ headerShown: false }} />
       <Stack.Screen name="Saved" component={SavedScreen} options={{ headerShown: false }} />
       <Stack.Screen name="CreateDecision" component={CreateDecisionScreen} options={{ title: "Create" }} />
@@ -74,6 +63,7 @@ export function AppNavigator() {
         component={LeaveConnectionConfirmScreen}
         options={{ title: "Leave connection" }}
       />
+      <Stack.Screen name="ThemeSelection" component={ThemeSelectionScreen} options={{ title: "App Theme" }} />
     </Stack.Navigator>
   );
 }

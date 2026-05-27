@@ -17,6 +17,7 @@ export type RootStackParamList = {
   SafetyPrivacy: undefined;
   ManageConnections: undefined;
   LeaveConnectionConfirm: undefined;
+  ThemeSelection: undefined;
 };
 
 declare global {

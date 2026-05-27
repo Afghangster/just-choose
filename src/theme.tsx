@@ -1,4 +1,5 @@
-import React, { createContext, useContext, ReactNode, useState } from "react";
+import React, { createContext, useContext, ReactNode, useState, useEffect } from "react";
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 export type ThemeColors = {
   background: string;
@@ -172,10 +173,34 @@ const ThemeContext = createContext<ThemeContextType>({
 
 export function ThemeProvider({ children }: { children: ReactNode }) {
   const [themeName, setThemeName] = useState('light');
+
+  useEffect(() => {
+    async function loadTheme() {
+      try {
+        const savedTheme = await AsyncStorage.getItem('app_theme');
+        if (savedTheme && palettes[savedTheme]) {
+          setThemeName(savedTheme);
+        }
+      } catch (e) {
+        // Ignore load error
+      }
+    }
+    loadTheme();
+  }, []);
+
+  const handleSetTheme = async (name: string) => {
+    setThemeName(name);
+    try {
+      await AsyncStorage.setItem('app_theme', name);
+    } catch (e) {
+      // Ignore save error
+    }
+  };
+
   const themeColors = palettes[themeName] || palettes.light;
 
   return (
-    <ThemeContext.Provider value={{ themeName, colors: themeColors, setTheme: setThemeName }}>
+    <ThemeContext.Provider value={{ themeName, colors: themeColors, setTheme: handleSetTheme }}>
       {children}
     </ThemeContext.Provider>
   );

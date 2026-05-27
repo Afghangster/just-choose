@@ -1,11 +1,13 @@
 import React, { useEffect, useState, useMemo } from "react";
 import { Alert, Animated, Image, Platform, Pressable, ScrollView, Share, StyleSheet, Text, TextInput, View } from "react-native";
+import { LinearGradient } from "expo-linear-gradient";
 import type { NativeStackScreenProps } from "@react-navigation/native-stack";
 import * as AppleAuthentication from "expo-apple-authentication";
 import * as Clipboard from "expo-clipboard";
 import * as Linking from "expo-linking";
 import * as WebBrowser from "expo-web-browser";
-import { Bookmark, CheckCircle2, ChevronRight, Clock, Copy, Home, LogOut, Mail, Plus, RefreshCw, Shield, SlidersHorizontal, Share2, ShieldCheck, Sparkles, UserRound, X, Zap } from "lucide-react-native";
+import type { Edge } from "react-native-safe-area-context";
+import { Bookmark, CheckCircle2, ChevronRight, Clock, Copy, Home, LogOut, Mail, Palette, Plus, RefreshCw, Shield, SlidersHorizontal, Share2, ShieldCheck, Sparkles, UserRound, X } from "lucide-react-native";
 
 import {
   ActivityCard,
@@ -32,7 +34,7 @@ import {
   upsertProfile,
 } from "../services/supabaseRepository";
 import { useAppStore } from "../store/appStore";
-import { useTheme, spacing, typography } from "../theme";
+import { useTheme, spacing, typography, palettes } from "../theme";
 import type { RootStackParamList } from "../navigation/types";
 import type { Connection, Decision, Gender, ResponseType } from "../types/domain";
 import { createDecisionSchema } from "../validation/decisionSchemas";
@@ -43,6 +45,7 @@ type Props<T extends keyof RootStackParamList> = NativeStackScreenProps<
 >;
 
 const brandIcon = require("../../JustChoose.png");
+const nativeHeaderScreenEdges: Edge[] = ["right", "bottom", "left"];
 
 WebBrowser.maybeCompleteAuthSession();
 
@@ -685,7 +688,8 @@ export function HomeScreen({ navigation }: Props<"Home">) {
 
   if (!profile) {
     return (
-      <Screen title="Just Choose">
+      <Screen>
+        <ScreenHeader title="Just Choose" />
         <Button label="Sign in" onPress={() => navigation.replace("Auth")} />
       </Screen>
     );
@@ -693,17 +697,14 @@ export function HomeScreen({ navigation }: Props<"Home">) {
 
   return (
     <Screen
-      title={`Hi ${profile.displayName}`}
-      subtitle={connectedProfile ? "Make the tiny debate someone else's problem." : "Make the question now. Connect when you're ready to send it."}
       onRefresh={() => refreshRemoteState().catch(() => undefined)}
       refreshing={remoteStatus === "loading"}
       footer={<FloatingTabBar active="home" navigation={navigation} />}
     >
-      <Button
-        label="Make them choose"
-        icon={<Zap size={18} color="#FFFFFF" />}
-        onPress={() => navigation.navigate("CreateDecision")}
-      />
+      <ScreenHeader title={`Hi ${profile.displayName}`} />
+      <Text style={uiStyles.subtitle}>
+        {connectedProfile ? "Make the tiny debate someone else's problem." : "Make the question now. Connect when you're ready to send it."}
+      </Text>
       {connection ? null : (
         <Card>
           <Text style={[typography.h2, { color: colors.ink }]}>No connection yet</Text>
@@ -756,7 +757,6 @@ export function HistoryScreen({ navigation }: Props<"History">) {
   const remoteStatus = useAppStore((state) => state.remoteStatus);
   const remoteError = useAppStore((state) => state.remoteError);
   const [dismissed, setDismissed] = useState<Set<string>>(new Set());
-  const { colors } = useTheme();
   const uiStyles = useStyles();
   const histStyles = useHistoryStyles();
 
@@ -852,21 +852,7 @@ export function HistoryScreen({ navigation }: Props<"History">) {
       refreshing={remoteStatus === "loading"}
       footer={<FloatingTabBar active="history" navigation={navigation} />}
     >
-      {/* Top bar: logo + plus icon */}
-      <View style={histStyles.topBar}>
-        <Image source={brandIcon} style={{ height: 36, width: 46, resizeMode: 'contain' }} />
-        <Pressable
-          accessibilityRole="button"
-          accessibilityLabel="New question"
-          onPress={() => navigation.navigate("CreateDecision")}
-          style={({ pressed }) => [histStyles.plusBtn, pressed && { opacity: 0.6 }]}
-        >
-          <Plus size={28} color={colors.border} strokeWidth={2.4} />
-        </Pressable>
-      </View>
-
-      {/* Section heading */}
-      <Text style={histStyles.sectionHeading}>Recent activity</Text>
+      <ScreenHeader title="Recent" />
 
       {remoteError ? <Text style={uiStyles.small}>{remoteError}</Text> : null}
 
@@ -916,13 +902,11 @@ export function HistoryScreen({ navigation }: Props<"History">) {
 }
 
 export function SavedScreen({ navigation }: Props<"Saved">) {
-  const { colors } = useTheme();
   return (
-    <Screen footer={<FloatingTabBar active="saved" navigation={navigation} />}>
-      <View style={{ paddingTop: spacing.sm }}>
-        <Image source={brandIcon} style={{ height: 36, width: 46, resizeMode: 'contain' }} />
-      </View>
-      <Text style={[typography.h2, { color: colors.ink }]}>Saved</Text>
+    <Screen
+      footer={<FloatingTabBar active="saved" navigation={navigation} />}
+    >
+      <ScreenHeader title="Saved" />
       <EmptyState title="Nothing saved yet" body="Bookmark your favourite choices and they'll show up here." />
     </Screen>
   );
@@ -1013,9 +997,8 @@ export function CreateDecisionScreen({ navigation }: Props<"CreateDecision">) {
   }
 
   return (
-    <Screen>
+    <Screen safeAreaEdges={nativeHeaderScreenEdges}>
       <LargeTextField
-        label="Drop the question"
         value={note}
         onChangeText={setNote}
         placeholder="Where should we eat tonight?"
@@ -1176,12 +1159,20 @@ export function DecisionResultScreen({ route, navigation }: Props<"DecisionResul
 }
 
 export function SettingsScreen({ navigation }: Props<"Settings">) {
-  const { colors } = useTheme();
+  const { colors, themeName } = useTheme();
   const connection = useAppStore((state) => state.connection);
   const signOut = useAppStore((state) => state.signOut);
+  const formattedThemeName = themeName.charAt(0).toUpperCase() + themeName.slice(1);
   return (
-    <Screen title="Settings" footer={<FloatingTabBar active="settings" navigation={navigation} />}>
+    <Screen footer={<FloatingTabBar active="settings" navigation={navigation} />}>
+      <ScreenHeader title="Settings" />
       {connection ? <PremiumStatusCard connection={connection} /> : null}
+      <SettingsRow
+        title="App Theme"
+        subtitle={formattedThemeName}
+        icon={<Palette size={24} color={colors.teal} strokeWidth={3} />}
+        onPress={() => navigation.navigate("ThemeSelection")}
+      />
       <SettingsRow
         title="Safety and privacy"
         subtitle="What Just Choose stores"
@@ -1199,15 +1190,70 @@ export function SettingsScreen({ navigation }: Props<"Settings">) {
         subtitle="Sign out of your account"
         icon={<LogOut size={24} color={colors.coral} strokeWidth={3} />}
         titleColor={colors.coral}
-        onPress={async () => {
-          try {
-            await signOut();
-            navigation.replace("Auth");
-          } catch (error) {
-            Alert.alert("Log out issue", error instanceof Error ? error.message : "Unable to log out.");
-          }
+        onPress={() => {
+          Alert.alert(
+            "Log out?",
+            "You'll need to sign in again to use Just Choose.",
+            [
+              { text: "Cancel", style: "cancel" },
+              {
+                text: "Log out",
+                style: "destructive",
+                onPress: async () => {
+                  try {
+                    await signOut();
+                    navigation.replace("Auth");
+                  } catch (error) {
+                    Alert.alert("Log out issue", error instanceof Error ? error.message : "Unable to log out.");
+                  }
+                },
+              },
+            ],
+          );
         }}
       />
+    </Screen>
+  );
+}
+
+export function ThemeSelectionScreen({ navigation }: Props<"ThemeSelection">) {
+  const { colors, themeName, setTheme } = useTheme();
+
+  return (
+    <Screen safeAreaEdges={nativeHeaderScreenEdges}>
+      <ScrollView contentContainerStyle={{ gap: spacing.md, paddingBottom: spacing.xxl }}>
+        {Object.entries(palettes).map(([name, palette]) => {
+          const isActive = themeName === name;
+          const formattedName = name.charAt(0).toUpperCase() + name.slice(1);
+
+          return (
+            <Pressable key={name} onPress={() => setTheme(name)}>
+              <Card>
+                <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between" }}>
+                  <View style={{ flexDirection: "row", alignItems: "center", gap: spacing.md }}>
+                    <View style={{ 
+                      flexDirection: 'row', 
+                      width: 48, 
+                      height: 48, 
+                      borderRadius: 24, 
+                      backgroundColor: palette.background,
+                      borderWidth: 2,
+                      borderColor: palette.border,
+                      overflow: 'hidden',
+                      position: 'relative'
+                    }}>
+                      <View style={{ position: 'absolute', top: 0, bottom: 0, left: 24, right: 0, backgroundColor: palette.teal }} />
+                      <View style={{ position: 'absolute', bottom: 0, left: 0, right: 0, height: 24, backgroundColor: palette.coral, opacity: 0.8 }} />
+                    </View>
+                    <Text style={[typography.h2, { color: colors.ink }]}>{formattedName}</Text>
+                  </View>
+                  {isActive ? <CheckCircle2 size={24} color={colors.teal} /> : <View style={{ width: 24 }} />}
+                </View>
+              </Card>
+            </Pressable>
+          );
+        })}
+      </ScrollView>
     </Screen>
   );
 }
@@ -1215,7 +1261,7 @@ export function SettingsScreen({ navigation }: Props<"Settings">) {
 export function SafetyPrivacyScreen() {
   const { colors } = useTheme();
   return (
-    <Screen title="Safety and privacy" subtitle="Simple by design.">
+    <Screen safeAreaEdges={nativeHeaderScreenEdges}>
       <Card>
         <Text style={[typography.h2, { color: colors.ink }]}>Stored data</Text>
         <Text style={[typography.body, { color: colors.ink }]}>
@@ -1275,7 +1321,7 @@ export function ManageConnectionsScreen({ navigation }: Props<"ManageConnections
 
   if (!connection || !connectedProfile) {
     return (
-      <Screen title="Manage connections" subtitle="No active connection yet.">
+      <Screen safeAreaEdges={nativeHeaderScreenEdges}>
         <Button label="Create invite" onPress={() => navigation.replace("ConnectionInvite")} />
       </Screen>
     );
@@ -1313,7 +1359,7 @@ export function ManageConnectionsScreen({ navigation }: Props<"ManageConnections
   }
 
   return (
-    <Screen title="Manage connections" subtitle="Keep your labels clear before you send a choice.">
+    <Screen safeAreaEdges={nativeHeaderScreenEdges}>
       <Card>
         <View style={uiStyles.brandRow}>
           <Image source={brandIcon} style={uiStyles.brandIcon} />
@@ -1543,46 +1589,100 @@ function FloatingTabBar({
   navigation,
 }: {
   active: PrimaryTab;
-  navigation: { navigate: (screen: "Home" | "History" | "Saved" | "Settings") => void };
+  navigation: { navigate: (screen: "Home" | "History" | "Saved" | "Settings" | "CreateDecision") => void };
 }) {
   const styles = useStyles();
   const { colors } = useTheme();
-  const items: Array<{
-    id: PrimaryTab;
-    label: string;
-    screen: "Home" | "History" | "Saved" | "Settings";
-    icon: typeof Home;
-  }> = [
-    { id: "home", label: "Home", screen: "Home", icon: Home },
-    { id: "history", label: "Recent", screen: "History", icon: Clock },
-    { id: "saved", label: "Saved", screen: "Saved", icon: Bookmark },
-    { id: "settings", label: "Settings", screen: "Settings", icon: SlidersHorizontal },
-  ];
+
+  const TabButton = ({ id, label, screen, icon: Icon }: any) => {
+    const selected = id === active;
+    return (
+      <Pressable
+        key={id}
+        accessibilityRole="button"
+        accessibilityLabel={label}
+        onPress={() => {
+          if (!selected) {
+            navigation.navigate(screen);
+          }
+        }}
+        style={[styles.tabItem, selected && styles.tabItemActive]}
+      >
+        <Icon size={22} color={selected ? colors.coral : colors.ink} strokeWidth={2.2} />
+      </Pressable>
+    );
+  };
 
   return (
     <View style={styles.tabBar}>
-      {items.map((item) => {
-        const selected = item.id === active;
-        const Icon = item.icon;
-        return (
-          <Pressable
-            key={item.id}
-            accessibilityRole="button"
-            accessibilityLabel={item.label}
-            onPress={() => {
-              if (!selected) {
-                navigation.navigate(item.screen);
-              }
-            }}
-            style={[styles.tabItem, selected && styles.tabItemActive]}
-          >
-            <Icon size={22} color={selected ? colors.coral : colors.ink} strokeWidth={2.2} />
-          </Pressable>
-        );
-      })}
+      <TabButton id="home" label="Home" screen="Home" icon={Home} />
+      <TabButton id="history" label="Recent" screen="History" icon={Clock} />
+
+      <Pressable
+        accessibilityRole="button"
+        accessibilityLabel="Create new decision"
+        onPress={() => navigation.navigate("CreateDecision")}
+        style={({ pressed }) => [
+          {
+            alignItems: "center",
+            justifyContent: "center",
+            width: 68,
+            height: 68,
+            borderRadius: 34,
+            marginTop: -10,
+            marginBottom: -10,
+            borderWidth: 3,
+            borderColor: colors.ink,
+            backgroundColor: colors.surface,
+            shadowColor: colors.ink,
+            shadowOffset: { width: 0, height: 4 },
+            shadowOpacity: 0.16,
+            shadowRadius: 0,
+            elevation: 4,
+          },
+          pressed && { opacity: 0.85, transform: [{ scale: 0.96 }] },
+        ]}
+      >
+        <LinearGradient
+          colors={[colors.coral, colors.amber] as const}
+          start={{ x: 0, y: 0.5 }}
+          end={{ x: 1, y: 0.5 }}
+          style={{
+            width: "100%",
+            height: "100%",
+            borderRadius: 34,
+            alignItems: "center",
+            justifyContent: "center",
+          }}
+        >
+          <Plus size={32} color="#FFFFFF" strokeWidth={3} />
+        </LinearGradient>
+      </Pressable>
+
+      <TabButton id="saved" label="Saved" screen="Saved" icon={Bookmark} />
+      <TabButton id="settings" label="Settings" screen="Settings" icon={SlidersHorizontal} />
     </View>
   );
 }
+
+function ScreenHeader({ title }: { title: string }) {
+  const { colors } = useTheme();
+  return (
+    <View style={{ paddingTop: spacing.xs }}>
+      <Text style={{
+        fontSize: 28,
+        lineHeight: 34,
+        fontWeight: '900' as const,
+        color: colors.ink,
+        letterSpacing: -0.5,
+        textTransform: 'uppercase' as const,
+      }}>
+        {title}
+      </Text>
+    </View>
+  );
+}
+
 
 function useAttachmentStyles() {
   const { colors } = useTheme();

@@ -89,10 +89,10 @@ describe("simplified choice screens", () => {
     render(<HomeScreen navigation={navigation} route={mockRoute("Home")} />);
 
     expect(screen.getByText("Hi Alice")).toBeTruthy();
-    expect(screen.getByText("Make them choose")).toBeTruthy();
+    expect(screen.getByLabelText("Create new decision")).toBeTruthy();
     expect(screen.getByText("No connection yet")).toBeTruthy();
 
-    fireEvent.press(screen.getByText("Make them choose"));
+    fireEvent.press(screen.getByLabelText("Create new decision"));
 
     expect(navigation.navigate).toHaveBeenCalledWith("CreateDecision");
   });
@@ -116,7 +116,7 @@ describe("simplified choice screens", () => {
 
     render(<HistoryScreen navigation={mockNavigation()} route={mockRoute("History")} />);
 
-    expect(screen.getByText("Recent activity")).toBeTruthy();
+    expect(screen.getByText("Recent")).toBeTruthy();
     expect(screen.getByText("Blue sofa")).toBeTruthy();
   });
 
@@ -129,7 +129,7 @@ describe("simplified choice screens", () => {
 
     fireEvent.changeText(screen.getByPlaceholderText("Sushi 🍣"), "Black chair");
     fireEvent.changeText(screen.getByPlaceholderText("Thai 🍜"), "White chair");
-    fireEvent.changeText(screen.getByPlaceholderText("Make them choose"), "Need it today");
+    fireEvent.changeText(screen.getByPlaceholderText("Where should we eat tonight?"), "Need it today");
     fireEvent.press(screen.getByText("JUST CHOOSE"));
 
     await waitFor(() =>
@@ -162,7 +162,7 @@ describe("simplified choice screens", () => {
 
     fireEvent.changeText(screen.getByPlaceholderText("Sushi 🍣"), "Black chair");
     fireEvent.changeText(screen.getByPlaceholderText("Thai 🍜"), "White chair");
-    fireEvent.changeText(screen.getByPlaceholderText("Make them choose"), "Need it today");
+    fireEvent.changeText(screen.getByPlaceholderText("Where should we eat tonight?"), "Need it today");
     fireEvent.press(screen.getByText("JUST CHOOSE"));
 
     expect(repository.createDecisionWithOptions).not.toHaveBeenCalled();
@@ -178,7 +178,7 @@ describe("simplified choice screens", () => {
     expect(navigation.navigate).toHaveBeenCalledWith("ConnectionInvite");
     expect(screen.getByPlaceholderText("Sushi 🍣").props.value).toBe("Black chair");
     expect(screen.getByPlaceholderText("Thai 🍜").props.value).toBe("White chair");
-    expect(screen.getByPlaceholderText("Make them choose").props.value).toBe("Need it today");
+    expect(screen.getByPlaceholderText("Where should we eat tonight?").props.value).toBe("Need it today");
 
     alertSpy.mockRestore();
   });
