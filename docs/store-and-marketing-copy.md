@@ -2,11 +2,11 @@
 
 ## App Store Safe Description
 
-Just Choose is a private decision app for connected people. Create visual decision cards, compare options, and get quick one-tap answers from your connection. For urgent choices, optional Decision Lock lets a user temporarily shield selected distraction apps they choose, under their own limits, to help them respond faster. Your connection cannot directly control your phone.
+Just Choose is a private decision app for connected people. Create visual decision cards, compare options, and get quick one-tap answers from your connection.
 
 ## Short Description
 
-Private visual decisions for connected people, with optional self-controlled accountability for urgent choices.
+Private visual decisions for connected people.
 
 ## TikTok Hooks
 
@@ -16,10 +16,6 @@ Private visual decisions for connected people, with optional self-controlled acc
 - Group chat debate? No. Just Choose.
 - POV: you’re in IKEA and he has 5 minutes to answer.
 
-## Required Caption Guardrail
-
-Decision Lock only works if the answering user opts in, chooses their own limits and apps, and approves the connection.
-
 ## Metadata Guardrail
 
-App Store and Play Store metadata should describe Decision Lock as optional, temporary, self-controlled accountability. Do not use coercive or punitive framing.
+For the first release, describe the app as a free private decision-card tool for connected people. Do not mention paid subscriptions or deferred device-control features.

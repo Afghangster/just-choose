@@ -4,34 +4,32 @@
     "slug": "just-choose",
     "version": "1.0.0",
     "orientation": "portrait",
-    "icon": "./JustChoose.png",
-    "splash": {
-      "image": "./JustChoose.png",
-      "resizeMode": "contain",
-      "backgroundColor": "#ffffff"
-    },
+    "icon": "./assets/JustChoose.png",
     "scheme": "justchoose",
     "userInterfaceStyle": "light",
     "ios": {
       "supportsTablet": true,
       "usesAppleSignIn": true,
       "bundleIdentifier": "app.justchoose.mobile",
+      "buildNumber": "1",
       "infoPlist": {
         "NSPhotoLibraryUsageDescription": "Choose decision option images for your private Just Choose cards.",
-        "NSUserNotificationsUsageDescription": "Receive urgent decisions, nudge reminders, and Decision Lock status updates."
+        "NSCameraUsageDescription": "Take photos for your private Just Choose cards.",
+        "NSUserNotificationsUsageDescription": "Receive private choice reminders and answer updates.",
+        "ITSAppUsesNonExemptEncryption": false
       }
     },
     "android": {
       "package": "app.justchoose.mobile",
+      "versionCode": 1,
       "adaptiveIcon": {
         "backgroundColor": "#FFFFFF",
         "foregroundImage": "./assets/android-icon-foreground.png",
-        "backgroundImage": "./assets/android-icon-background.png",
         "monochromeImage": "./assets/android-icon-monochrome.png"
       },
       "predictiveBackGestureEnabled": false,
       "permissions": [
-        "POST_NOTIFICATIONS"
+        "android.permission.POST_NOTIFICATIONS"
       ]
     },
     "plugins": [
@@ -39,16 +37,36 @@
       "expo-secure-store",
       "expo-notifications",
       [
+        "expo-splash-screen",
+        {
+          "image": "./assets/SplashScreen.png",
+          "resizeMode": "cover",
+          "backgroundColor": "#ffffff",
+          "enableFullScreenImage_legacy": true
+        }
+      ],
+      [
         "expo-image-picker",
         {
           "photosPermission": "Choose decision option images for your private Just Choose cards.",
+          "cameraPermission": "Take photos for your private Just Choose cards.",
           "microphonePermission": false
         }
       ],
       "expo-web-browser"
     ],
     "web": {
-      "favicon": "./assets/favicon.png"
+      "favicon": "./assets/favicon.png",
+      "splash": {
+        "image": "./assets/SplashScreen.png",
+        "resizeMode": "cover",
+        "backgroundColor": "#ffffff"
+      }
+    },
+    "extra": {
+      "eas": {
+        "projectId": "d48e2b67-4278-4a05-bde9-79441de0dc26"
+      }
     }
   }
 }

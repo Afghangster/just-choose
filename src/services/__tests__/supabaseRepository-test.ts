@@ -34,6 +34,31 @@ describe("createSupabaseRepository simplified model", () => {
     expect(state.decisions[0].response?.responseType).toBe("selected_option");
   });
 
+  test("hydrates private storage paths into fresh signed image urls", async () => {
+    const tables = seededTables();
+    tables.decision_options[0].image_path = `${aliceId}/green-sofa.jpg`;
+    tables.connection_aliases.push({
+      id: "00000000-0000-4000-8000-000000000060",
+      connection_id: connectionId,
+      owner_user_id: aliceId,
+      target_user_id: bobId,
+      display_name: "Bob",
+      avatar_url: null,
+      avatar_path: `${aliceId}/avatars/bob.jpg`,
+    });
+    const repository = createSupabaseRepository(createFakeSupabaseClient(aliceId, tables));
+
+    const state = await repository.loadCurrentUserAppState();
+
+    expect(state.decisions[0].options[0]).toMatchObject({
+      imagePath: `${aliceId}/green-sofa.jpg`,
+      imageUrl: `https://signed.example/decision-images/${aliceId}/green-sofa.jpg`,
+    });
+    expect(state.connectedProfile?.connectionAvatarUrl).toBe(
+      `https://signed.example/decision-images/${aliceId}/avatars/bob.jpg`,
+    );
+  });
+
   test("previews then accepts an invite before creating a decision", async () => {
     const tables = seededTables({ includeBobMembership: false, includeDecision: false });
     const client = createFakeSupabaseClient(bobId, tables);
@@ -390,6 +415,18 @@ function createFakeSupabaseClient(userId: string, tables: Record<string, any[]>)
     },
     from(table: string) {
       return new FakeQuery(table, tables, uuid);
+    },
+    storage: {
+      from: jest.fn((bucket: string) => ({
+        createSignedUrl: jest.fn(async (path: string) => ({
+          data: { signedUrl: `https://signed.example/${bucket}/${path}` },
+          error: null,
+        })),
+        createSignedUrls: jest.fn(async (paths: string[]) => ({
+          data: paths.map((path) => ({ path, signedUrl: `https://signed.example/${bucket}/${path}` })),
+          error: null,
+        })),
+      })),
     },
     rpc: jest.fn(async (fn: string, args: Record<string, string>) => {
       if (fn === "create_connection_invite") {

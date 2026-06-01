@@ -167,6 +167,7 @@ function fakeRepository(state: RemoteAppState): AppRepository {
       email: "alice@example.com",
     })),
     resendSignupConfirmation: jest.fn(async () => undefined),
+    startAppleOAuthSignIn: jest.fn(async () => ({ url: "https://example.com/auth" })),
     startGoogleSignIn: jest.fn(async () => ({ url: "https://example.com/auth" })),
     completeOAuthSignIn: jest.fn(async () => ({ userId: state.authUserId! })),
     signInWithAppleIdentityToken: jest.fn(async () => ({ userId: state.authUserId! })),
@@ -189,6 +190,8 @@ function fakeRepository(state: RemoteAppState): AppRepository {
     savePushToken: jest.fn(async () => undefined),
     updateConnectionDisplayName: jest.fn(async () => state),
     stopConnection: jest.fn(async () => ({ ...state, connection: null, connectedProfile: null, decisions: [] })),
+    deleteDecision: jest.fn(async () => undefined),
     signOut: jest.fn(async () => undefined),
+    deleteAccount: jest.fn(async () => undefined),
   };
 }

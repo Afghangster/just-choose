@@ -1,0 +1,379 @@
+{
+  "/JustChooseSiteStack": [
+    {
+      "type": "aws:cdk:creationStack",
+      "data": [
+        "<anonymous> (/Users/mielad/Documents/Github/projects/Just Choose/.infra/bin/app.ts:8:1)",
+        "...node internals, ts-node, ts-node..."
+      ]
+    }
+  ],
+  "/JustChooseSiteStack/Custom::S3AutoDeleteObjectsCustomResourceProvider": [
+    {
+      "type": "aws:cdk:is-custom-resource-handler-customResourceProvider",
+      "data": true
+    }
+  ],
+  "/JustChooseSiteStack/AWSCloudFrontPartitionHostedZoneIdMap": [
+    {
+      "type": "aws:cdk:logicalId",
+      "data": "AWSCloudFrontPartitionHostedZoneIdMap"
+    },
+    {
+      "type": "aws:cdk:creationStack",
+      "data": [
+        "...new ARecord2 in aws-cdk-lib...",
+        "new StaticSiteStack (/Users/mielad/Documents/Github/projects/Just Choose/.infra/lib/static-site-stack.ts:85:5)",
+        "<anonymous> (/Users/mielad/Documents/Github/projects/Just Choose/.infra/bin/app.ts:8:1)",
+        "...node internals, ts-node..."
+      ]
+    }
+  ],
+  "/JustChooseSiteStack/Custom::CDKBucketDeployment8693BB64968944B69AAFB0CC9EB8756C": [
+    {
+      "type": "aws:cdk:is-custom-resource-handler-singleton",
+      "data": true
+    },
+    {
+      "type": "aws:cdk:is-custom-resource-handler-runtime-family",
+      "data": 2
+    }
+  ],
+  "/JustChooseSiteStack/SiteUrl": [
+    {
+      "type": "aws:cdk:logicalId",
+      "data": "SiteUrl"
+    },
+    {
+      "type": "aws:cdk:creationStack",
+      "data": [
+        "new StaticSiteStack (/Users/mielad/Documents/Github/projects/Just Choose/.infra/lib/static-site-stack.ts:127:5)",
+        "<anonymous> (/Users/mielad/Documents/Github/projects/Just Choose/.infra/bin/app.ts:8:1)",
+        "...node internals, ts-node, ts-node..."
+      ]
+    }
+  ],
+  "/JustChooseSiteStack/DistributionId": [
+    {
+      "type": "aws:cdk:logicalId",
+      "data": "DistributionId"
+    },
+    {
+      "type": "aws:cdk:creationStack",
+      "data": [
+        "new StaticSiteStack (/Users/mielad/Documents/Github/projects/Just Choose/.infra/lib/static-site-stack.ts:131:5)",
+        "<anonymous> (/Users/mielad/Documents/Github/projects/Just Choose/.infra/bin/app.ts:8:1)",
+        "...node internals, ts-node, ts-node..."
+      ]
+    }
+  ],
+  "/JustChooseSiteStack/BucketName": [
+    {
+      "type": "aws:cdk:logicalId",
+      "data": "BucketName"
+    },
+    {
+      "type": "aws:cdk:creationStack",
+      "data": [
+        "new StaticSiteStack (/Users/mielad/Documents/Github/projects/Just Choose/.infra/lib/static-site-stack.ts:135:5)",
+        "<anonymous> (/Users/mielad/Documents/Github/projects/Just Choose/.infra/bin/app.ts:8:1)",
+        "...node internals, ts-node, ts-node..."
+      ]
+    }
+  ],
+  "/JustChooseSiteStack/BootstrapVersion": [
+    {
+      "type": "aws:cdk:logicalId",
+      "data": "BootstrapVersion"
+    },
+    {
+      "type": "aws:cdk:creationStack",
+      "data": [
+        "...aws-cdk-lib...",
+        "(no user code in 10 frames, use --stack-trace-limit to capture more)"
+      ]
+    }
+  ],
+  "/JustChooseSiteStack/CheckBootstrapVersion": [
+    {
+      "type": "aws:cdk:logicalId",
+      "data": "CheckBootstrapVersion"
+    },
+    {
+      "type": "aws:cdk:creationStack",
+      "data": [
+        "...aws-cdk-lib...",
+        "(no user code in 10 frames, use --stack-trace-limit to capture more)"
+      ]
+    }
+  ],
+  "/JustChooseSiteStack/SiteCertificate/Resource": [
+    {
+      "type": "aws:cdk:logicalId",
+      "data": "SiteCertificate38C247F6"
+    },
+    {
+      "type": "aws:cdk:creationStack",
+      "data": [
+        "...new Certificate2 in aws-cdk-lib...",
+        "new StaticSiteStack (/Users/mielad/Documents/Github/projects/Just Choose/.infra/lib/static-site-stack.ts:33:25)",
+        "<anonymous> (/Users/mielad/Documents/Github/projects/Just Choose/.infra/bin/app.ts:8:1)",
+        "...node internals, ts-node, ts-node..."
+      ]
+    }
+  ],
+  "/JustChooseSiteStack/SiteBucket/Resource": [
+    {
+      "type": "aws:cdk:logicalId",
+      "data": "SiteBucket397A1860"
+    },
+    {
+      "type": "aws:cdk:creationStack",
+      "data": [
+        "...new Bucket2 in aws-cdk-lib...",
+        "new StaticSiteStack (/Users/mielad/Documents/Github/projects/Just Choose/.infra/lib/static-site-stack.ts:42:24)",
+        "<anonymous> (/Users/mielad/Documents/Github/projects/Just Choose/.infra/bin/app.ts:8:1)",
+        "...node internals, ts-node, ts-node..."
+      ]
+    },
+    {
+      "type": "aws:cdk:analytics:mixin",
+      "data": {
+        "mixin": "aws-cdk-lib.aws_s3.mixins.BucketAutoDeleteObjects"
+      }
+    }
+  ],
+  "/JustChooseSiteStack/Custom::S3AutoDeleteObjectsCustomResourceProvider/Role": [
+    {
+      "type": "aws:cdk:logicalId",
+      "data": "CustomS3AutoDeleteObjectsCustomResourceProviderRole3B1BD092"
+    },
+    {
+      "type": "aws:cdk:creationStack",
+      "data": [
+        "...aws-cdk-lib...",
+        "(no user code in 10 frames, use --stack-trace-limit to capture more)"
+      ]
+    }
+  ],
+  "/JustChooseSiteStack/Custom::S3AutoDeleteObjectsCustomResourceProvider/Handler": [
+    {
+      "type": "aws:cdk:logicalId",
+      "data": "CustomS3AutoDeleteObjectsCustomResourceProviderHandler9D90184F"
+    },
+    {
+      "type": "aws:cdk:creationStack",
+      "data": [
+        "...aws-cdk-lib...",
+        "(no user code in 10 frames, use --stack-trace-limit to capture more)"
+      ]
+    }
+  ],
+  "/JustChooseSiteStack/SiteDistribution/Resource": [
+    {
+      "type": "aws:cdk:logicalId",
+      "data": "SiteDistribution3FF9535D"
+    },
+    {
+      "type": "aws:cdk:creationStack",
+      "data": [
+        "...new Distribution2 in aws-cdk-lib...",
+        "new StaticSiteStack (/Users/mielad/Documents/Github/projects/Just Choose/.infra/lib/static-site-stack.ts:52:26)",
+        "<anonymous> (/Users/mielad/Documents/Github/projects/Just Choose/.infra/bin/app.ts:8:1)",
+        "...node internals, ts-node, ts-node..."
+      ]
+    }
+  ],
+  "/JustChooseSiteStack/SiteARecord/Resource": [
+    {
+      "type": "aws:cdk:logicalId",
+      "data": "SiteARecord078DA7E7"
+    },
+    {
+      "type": "aws:cdk:creationStack",
+      "data": [
+        "...new ARecord2 in aws-cdk-lib...",
+        "new StaticSiteStack (/Users/mielad/Documents/Github/projects/Just Choose/.infra/lib/static-site-stack.ts:85:5)",
+        "<anonymous> (/Users/mielad/Documents/Github/projects/Just Choose/.infra/bin/app.ts:8:1)",
+        "...node internals, ts-node, ts-node..."
+      ]
+    }
+  ],
+  "/JustChooseSiteStack/SiteAaaaRecord/Resource": [
+    {
+      "type": "aws:cdk:logicalId",
+      "data": "SiteAaaaRecord2B3EC60D"
+    },
+    {
+      "type": "aws:cdk:creationStack",
+      "data": [
+        "...new AaaaRecord2 in aws-cdk-lib...",
+        "new StaticSiteStack (/Users/mielad/Documents/Github/projects/Just Choose/.infra/lib/static-site-stack.ts:91:5)",
+        "<anonymous> (/Users/mielad/Documents/Github/projects/Just Choose/.infra/bin/app.ts:8:1)",
+        "...node internals, ts-node, ts-node..."
+      ]
+    }
+  ],
+  "/JustChooseSiteStack/WwwARecord/Resource": [
+    {
+      "type": "aws:cdk:logicalId",
+      "data": "WwwARecord21A54661"
+    },
+    {
+      "type": "aws:cdk:creationStack",
+      "data": [
+        "...new ARecord2 in aws-cdk-lib...",
+        "new StaticSiteStack (/Users/mielad/Documents/Github/projects/Just Choose/.infra/lib/static-site-stack.ts:99:5)",
+        "<anonymous> (/Users/mielad/Documents/Github/projects/Just Choose/.infra/bin/app.ts:8:1)",
+        "...node internals, ts-node, ts-node..."
+      ]
+    }
+  ],
+  "/JustChooseSiteStack/WwwAaaaRecord/Resource": [
+    {
+      "type": "aws:cdk:logicalId",
+      "data": "WwwAaaaRecord7E37C242"
+    },
+    {
+      "type": "aws:cdk:creationStack",
+      "data": [
+        "...new AaaaRecord2 in aws-cdk-lib...",
+        "new StaticSiteStack (/Users/mielad/Documents/Github/projects/Just Choose/.infra/lib/static-site-stack.ts:106:5)",
+        "<anonymous> (/Users/mielad/Documents/Github/projects/Just Choose/.infra/bin/app.ts:8:1)",
+        "...node internals, ts-node, ts-node..."
+      ]
+    }
+  ],
+  "/JustChooseSiteStack/Custom::CDKBucketDeployment8693BB64968944B69AAFB0CC9EB8756C/Resource": [
+    {
+      "type": "aws:cdk:logicalId",
+      "data": "CustomCDKBucketDeployment8693BB64968944B69AAFB0CC9EB8756C81C01536"
+    },
+    {
+      "type": "aws:cdk:creationStack",
+      "data": [
+        "...new BucketDeployment2 in aws-cdk-lib...",
+        "new StaticSiteStack (/Users/mielad/Documents/Github/projects/Just Choose/.infra/lib/static-site-stack.ts:117:5)",
+        "<anonymous> (/Users/mielad/Documents/Github/projects/Just Choose/.infra/bin/app.ts:8:1)"
+      ]
+    }
+  ],
+  "/JustChooseSiteStack/CDKMetadata/Default": [
+    {
+      "type": "aws:cdk:logicalId",
+      "data": "CDKMetadata"
+    },
+    {
+      "type": "aws:cdk:creationStack",
+      "data": [
+        "...aws-cdk-lib, node internals...",
+        "(no user code in 10 frames, use --stack-trace-limit to capture more)"
+      ]
+    }
+  ],
+  "/JustChooseSiteStack/SiteBucket/Policy/Resource": [
+    {
+      "type": "aws:cdk:logicalId",
+      "data": "SiteBucketPolicy3AC1D0F8"
+    },
+    {
+      "type": "aws:cdk:creationStack",
+      "data": [
+        "...new Bucket2 in aws-cdk-lib...",
+        "new StaticSiteStack (/Users/mielad/Documents/Github/projects/Just Choose/.infra/lib/static-site-stack.ts:42:24)",
+        "<anonymous> (/Users/mielad/Documents/Github/projects/Just Choose/.infra/bin/app.ts:8:1)",
+        "...node internals..."
+      ]
+    },
+    {
+      "type": "aws:cdk:analytics:mixin",
+      "data": {
+        "mixin": "aws-cdk-lib.aws_s3.mixins.BucketPolicyStatements"
+      }
+    }
+  ],
+  "/JustChooseSiteStack/SiteBucket/AutoDeleteObjectsCustomResource/Default": [
+    {
+      "type": "aws:cdk:logicalId",
+      "data": "SiteBucketAutoDeleteObjectsCustomResource9585E968"
+    },
+    {
+      "type": "aws:cdk:creationStack",
+      "data": [
+        "...aws-cdk-lib...",
+        "(no user code in 10 frames, use --stack-trace-limit to capture more)"
+      ]
+    }
+  ],
+  "/JustChooseSiteStack/DeploySite/AwsCliLayer/Resource": [
+    {
+      "type": "aws:cdk:logicalId",
+      "data": "DeploySiteAwsCliLayer88B0EBE2"
+    },
+    {
+      "type": "aws:cdk:creationStack",
+      "data": [
+        "...new BucketDeployment2 in aws-cdk-lib...",
+        "new StaticSiteStack (/Users/mielad/Documents/Github/projects/Just Choose/.infra/lib/static-site-stack.ts:117:5)",
+        "<anonymous> (/Users/mielad/Documents/Github/projects/Just Choose/.infra/bin/app.ts:8:1)",
+        "...node internals, ts-node..."
+      ]
+    }
+  ],
+  "/JustChooseSiteStack/DeploySite/CustomResource/Default": [
+    {
+      "type": "aws:cdk:logicalId",
+      "data": "DeploySiteCustomResourceE47C9748"
+    },
+    {
+      "type": "aws:cdk:creationStack",
+      "data": [
+        "...new BucketDeployment2 in aws-cdk-lib...",
+        "new StaticSiteStack (/Users/mielad/Documents/Github/projects/Just Choose/.infra/lib/static-site-stack.ts:117:5)",
+        "<anonymous> (/Users/mielad/Documents/Github/projects/Just Choose/.infra/bin/app.ts:8:1)",
+        "...node internals, ts-node..."
+      ]
+    }
+  ],
+  "/JustChooseSiteStack/Custom::CDKBucketDeployment8693BB64968944B69AAFB0CC9EB8756C/ServiceRole/Resource": [
+    {
+      "type": "aws:cdk:logicalId",
+      "data": "CustomCDKBucketDeployment8693BB64968944B69AAFB0CC9EB8756CServiceRole89A01265"
+    },
+    {
+      "type": "aws:cdk:creationStack",
+      "data": [
+        "...aws-cdk-lib...",
+        "(no user code in 10 frames, use --stack-trace-limit to capture more)"
+      ]
+    }
+  ],
+  "/JustChooseSiteStack/SiteDistribution/Origin1/S3OriginAccessControl/Resource": [
+    {
+      "type": "aws:cdk:logicalId",
+      "data": "SiteDistributionOrigin1S3OriginAccessControl7D960FE6"
+    },
+    {
+      "type": "aws:cdk:creationStack",
+      "data": [
+        "...new Distribution2 in aws-cdk-lib...",
+        "new StaticSiteStack (/Users/mielad/Documents/Github/projects/Just Choose/.infra/lib/static-site-stack.ts:52:26)",
+        "<anonymous> (/Users/mielad/Documents/Github/projects/Just Choose/.infra/bin/app.ts:8:1)",
+        "...node internals..."
+      ]
+    }
+  ],
+  "/JustChooseSiteStack/Custom::CDKBucketDeployment8693BB64968944B69AAFB0CC9EB8756C/ServiceRole/DefaultPolicy/Resource": [
+    {
+      "type": "aws:cdk:logicalId",
+      "data": "CustomCDKBucketDeployment8693BB64968944B69AAFB0CC9EB8756CServiceRoleDefaultPolicy88902FDF"
+    },
+    {
+      "type": "aws:cdk:creationStack",
+      "data": [
+        "...aws-cdk-lib...",
+        "(no user code in 10 frames, use --stack-trace-limit to capture more)"
+      ]
+    }
+  ]
+}

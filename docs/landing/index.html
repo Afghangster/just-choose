@@ -1,0 +1,566 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Just Choose — Stop saying "I don't know". The app that makes them pick.</title>
+  <meta name="description" content="Just Choose is the private decision app for couples, friends, and families who are done hearing 'I don't mind'. Create visual choices, send them, and get answers right away.">
+  <meta name="keywords" content="decision app, couples app, just choose, stop arguing, pick something, relationship app">
+  <meta property="og:title" content="Just Choose — Make them pick.">
+  <meta property="og:description" content="The private decision app for people tired of hearing 'I don't know'. Create choices, send them, get answers.">
+  <meta property="og:type" content="website">
+  <link rel="icon" type="image/png" href="images/app-icon.png">
+
+  <!-- Google Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800;900&display=swap" rel="stylesheet">
+
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+
+  <!-- ====== NAVBAR ====== -->
+  <nav class="navbar" id="navbar">
+    <div class="navbar__inner">
+      <a href="#" class="navbar__brand">
+        <img src="images/app-icon.png" alt="Just Choose" class="navbar__icon">
+        <span class="navbar__name">Just Choose</span>
+      </a>
+      <ul class="navbar__links">
+        <li><a href="#problem" class="navbar__link">The Problem</a></li>
+        <li><a href="#how-it-works" class="navbar__link">How It Works</a></li>
+        <li><a href="#features" class="navbar__link">Features</a></li>
+        <li>
+          <a href="#download" class="btn btn--primary btn--small navbar__cta">Get the App</a>
+        </li>
+      </ul>
+      <button class="mobile-menu-toggle" aria-label="Toggle menu" id="mobile-menu-btn">
+        <span></span>
+        <span></span>
+        <span></span>
+      </button>
+    </div>
+  </nav>
+
+  <!-- ====== HERO ====== -->
+  <section class="section section--hero" id="hero">
+    <div class="container">
+      <div class="hero__grid">
+        <div class="hero__content">
+          <div class="hero__eyebrow">
+            <span class="hero__eyebrow-dot"></span>
+            For couples, friends & families
+          </div>
+
+          <h1 class="text-title hero__title">
+            <span>Tired of</span>
+            <span class="line-annoyed">"I don't know" <span class="annoyed-face">😤</span></span>
+            <span>& "I don't mind"?</span>
+          </h1>
+
+          <p class="hero__subtitle">
+            Just Choose is the app that ends the eternal debate. Create a decision, send it to your person, and <strong>make them pick</strong>. We've eliminated all excuses, so they actually have to choose.
+          </p>
+
+          <div class="hero__actions">
+            <a href="#download" class="btn btn--primary btn--large" id="hero-cta-primary">
+              <span>📱</span> Download
+            </a>
+            <a href="#how-it-works" class="btn btn--secondary btn--large" id="hero-cta-secondary">
+              See How It Works
+            </a>
+          </div>
+
+          <div class="hero__social-proof">
+            <div class="hero__avatars">
+              <div class="hero__avatar">MI</div>
+              <div class="hero__avatar" style="background: #D9FFF5; color: #00A88E;">AK</div>
+              <div class="hero__avatar" style="background: #ECE5FF; color: #7B5CFF;">JR</div>
+              <div class="hero__avatar" style="background: #FFE7A8; color: #FF9F1C;">TS</div>
+            </div>
+            <span class="hero__social-text">
+              <strong>Couples & friends</strong> already choosing
+            </span>
+          </div>
+        </div>
+
+        <div class="hero__visual">
+          <div class="hero__blob hero__blob--1"></div>
+          <div class="hero__blob hero__blob--2"></div>
+          <div class="hero__image-wrapper">
+            <img
+              src="images/hero-illustration.png"
+              alt="A frustrated couple: she says I don't mind, he says I don't know"
+              class="hero__image"
+            >
+          </div>
+
+          <!-- Floating deco -->
+          <div class="deco deco--star" style="top: 20px; left: 40px;"></div>
+          <div class="deco deco--circle" style="bottom: 60px; right: 30px;"></div>
+          <div class="deco deco--squiggle" style="top: 50%; right: 0;">〰️</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ====== TICKER ====== -->
+  <div class="ticker-section" aria-hidden="true">
+    <div class="ticker__track">
+      <div class="ticker__item">"I don't know" <span class="ticker__separator"></span></div>
+      <div class="ticker__item">"I don't mind" <span class="ticker__separator"></span></div>
+      <div class="ticker__item">"You decide" <span class="ticker__separator"></span></div>
+      <div class="ticker__item">"Whatever you want" <span class="ticker__separator"></span></div>
+      <div class="ticker__item">"I'm easy" <span class="ticker__separator"></span></div>
+      <div class="ticker__item">"Anything's fine" <span class="ticker__separator"></span></div>
+      <div class="ticker__item">"Surprise me" <span class="ticker__separator"></span></div>
+      <div class="ticker__item">"Up to you" <span class="ticker__separator"></span></div>
+      <!-- Duplicate for seamless loop -->
+      <div class="ticker__item">"I don't know" <span class="ticker__separator"></span></div>
+      <div class="ticker__item">"I don't mind" <span class="ticker__separator"></span></div>
+      <div class="ticker__item">"You decide" <span class="ticker__separator"></span></div>
+      <div class="ticker__item">"Whatever you want" <span class="ticker__separator"></span></div>
+      <div class="ticker__item">"I'm easy" <span class="ticker__separator"></span></div>
+      <div class="ticker__item">"Anything's fine" <span class="ticker__separator"></span></div>
+      <div class="ticker__item">"Surprise me" <span class="ticker__separator"></span></div>
+      <div class="ticker__item">"Up to you" <span class="ticker__separator"></span></div>
+    </div>
+  </div>
+
+  <!-- ====== PROBLEM ====== -->
+  <section class="section section--alt" id="problem">
+    <div class="container">
+      <div class="problem">
+        <div class="problem__intro reveal">
+          <span class="section-label">The Problem</span>
+          <h2 class="text-h1" style="margin-top: 16px;">Sound familiar? <span class="bounce-emoji">🙄</span></h2>
+          <p class="text-body" style="margin-top: 12px;">
+            Every couple, every friend group, every family has <em>that</em> person. You know the one.
+          </p>
+        </div>
+
+        <div class="problem__grid">
+          <div class="card card--coral problem__card reveal reveal-delay-1">
+            <div class="problem__icon">🍕</div>
+            <div class="problem__card-title">"Where should we eat?"</div>
+            <p class="problem__card-text">20 minutes of "I don't mind" later, you're hangry and still on the sofa.</p>
+          </div>
+          <div class="card card--butter problem__card reveal reveal-delay-2">
+            <div class="problem__icon">🎬</div>
+            <div class="problem__card-title">"What should we watch?"</div>
+            <p class="problem__card-text">Scrolling Netflix for an hour IS the entertainment now, apparently.</p>
+          </div>
+          <div class="card card--mint problem__card reveal reveal-delay-3">
+            <div class="problem__icon">🛋️</div>
+            <div class="problem__card-title">"Which sofa do we get?"</div>
+            <p class="problem__card-text">You've been to IKEA three times. IKEA. Three. Times.</p>
+          </div>
+        </div>
+
+        <div class="problem__solution reveal">
+          <span class="problem__arrow">⬇️</span>
+          <h3 class="text-h2">
+            So we made an app that says: <span style="color: var(--coral);">Just choose.</span>
+          </h3>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ====== HOW IT WORKS ====== -->
+  <section class="section" id="how-it-works">
+    <div class="container">
+      <div class="text-center reveal" style="margin-bottom: 48px;">
+        <span class="section-label">How It Works</span>
+        <h2 class="text-h1" style="margin-top: 16px;">Three steps. Five seconds. Done.</h2>
+        <p class="text-body" style="margin-top: 12px; max-width: 500px; margin-left: auto; margin-right: auto;">
+          Skip the sign-up marathon. Bypass the awkward group chat. Get straight to the decision.
+        </p>
+      </div>
+
+      <div class="how-it-works__steps">
+        <div class="step reveal reveal-delay-1">
+          <div class="step__number">1</div>
+          <div class="step__connector">→</div>
+          <img src="images/feature-connect.png" alt="Connect with someone" class="step__image">
+          <h3 class="step__title">Connect</h3>
+          <p class="step__text">Link up with your partner, flatmate, or that one friend who can never decide. One invite code. Done.</p>
+        </div>
+
+        <div class="step reveal reveal-delay-2">
+          <div class="step__number">2</div>
+          <div class="step__connector">→</div>
+          <img src="images/feature-choose.png" alt="Create a decision" class="step__image">
+          <h3 class="step__title">Create</h3>
+          <p class="step__text">Build a visual decision card with photos, prices, notes — whatever they need to stop stalling.</p>
+        </div>
+
+        <div class="step reveal reveal-delay-3">
+          <div class="step__number">3</div>
+          <img src="images/feature-peace.png" alt="Get the answer" class="step__image">
+          <h3 class="step__title">Decide</h3>
+          <p class="step__text">They tap their answer. You see the result. Crisis averted. Relationship saved. You're welcome.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ====== APP SHOWCASE ====== -->
+  <section class="section section--coral-soft" id="showcase">
+    <div class="container">
+      <div class="showcase__grid">
+        <div class="showcase__visual reveal">
+          <img
+            src="images/visual-decisions.jpg"
+            alt="Just Choose app showing a decision between Chinese and Indian food"
+            class="showcase__phone"
+          >
+        </div>
+        <div class="showcase__content reveal reveal-delay-2">
+          <span class="pill pill--coral showcase__badge">Visual Decisions</span>
+          <h2 class="text-h1">Not just text.<br>Beautiful choice cards.</h2>
+          <p class="text-body">
+            Add photos, prices, and notes to each option. Make the decision feel real — because "pizza or sushi" hits different when you can <em>see</em> both.
+          </p>
+          <p class="text-body">
+            Cards are private between you and your connection. Leave the group chat drama behind. Your choices stay totally private.
+          </p>
+          <a href="#download" class="btn btn--primary">
+            <span>✨</span> Get Started
+          </a>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ====== FEATURES ====== -->
+  <section class="section" id="features">
+    <div class="container">
+      <div class="text-center reveal" style="margin-bottom: 48px;">
+        <span class="section-label">Features</span>
+        <h2 class="text-h1" style="margin-top: 16px;">Everything you need.<br>Nothing you don't.</h2>
+      </div>
+
+      <div class="features__grid">
+        <div class="card feature reveal reveal-delay-1">
+          <div class="feature__icon-wrap feature__icon-wrap--coral">🔒</div>
+          <div class="feature__content">
+            <h3 class="feature__title">Totally Private</h3>
+            <p class="feature__text">Decisions stay between you and your connection. Keep it totally private without social feeds or public sharing.</p>
+          </div>
+        </div>
+
+        <div class="card feature reveal reveal-delay-2">
+          <div class="feature__icon-wrap feature__icon-wrap--butter">📸</div>
+          <div class="feature__content">
+            <h3 class="feature__title">Photo Options</h3>
+            <p class="feature__text">Add images to each choice. Because "the blue one" means nothing without a picture.</p>
+          </div>
+        </div>
+
+        <div class="card feature reveal reveal-delay-1">
+          <div class="feature__icon-wrap feature__icon-wrap--mint">⚡</div>
+          <div class="feature__content">
+            <h3 class="feature__title">Private answers</h3>
+            <p class="feature__text">Send a clear decision card to one trusted connection and keep the answer history between you.</p>
+          </div>
+        </div>
+
+        <div class="card feature reveal reveal-delay-2">
+          <div class="feature__icon-wrap feature__icon-wrap--purple">🎨</div>
+          <div class="feature__content">
+            <h3 class="feature__title">6 Themes</h3>
+            <p class="feature__text">From warm Classic to sleek Monochrome to soft Pink Blossom — pick the vibe that matches your energy.</p>
+          </div>
+        </div>
+
+        <div class="card feature reveal reveal-delay-1">
+          <div class="feature__icon-wrap feature__icon-wrap--blue">🔔</div>
+          <div class="feature__content">
+            <h3 class="feature__title">Push Notifications</h3>
+            <p class="feature__text">They'll know the second you send a choice. They’ll be notified instantly, so nobody can claim they missed your text.</p>
+          </div>
+        </div>
+
+        <div class="card feature reveal reveal-delay-2">
+          <div class="feature__icon-wrap feature__icon-wrap--peach">📊</div>
+          <div class="feature__content">
+            <h3 class="feature__title">Decision History</h3>
+            <p class="feature__text">Every choice is saved. Perfect for when they say "you always pick the restaurant".</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ====== QUOTES / SOCIAL PROOF ====== -->
+  <section class="section section--alt" id="quotes">
+    <div class="container">
+      <div class="quotes">
+        <div class="reveal">
+          <span class="section-label">Real Talk</span>
+          <h2 class="text-h1" style="margin-top: 16px;">TikTok loved it. <span class="bounce-emoji">🔥</span></h2>
+        </div>
+
+        <div class="quotes__bubbles">
+          <div class="speech-bubble reveal reveal-delay-1">
+            <p class="speech-bubble__text">"When he says 'I don't mind' one too many times..."</p>
+            <span class="speech-bubble__author">— @couplesoftheinternet</span>
+          </div>
+          <div class="speech-bubble reveal reveal-delay-2" style="background: var(--butter);">
+            <p class="speech-bubble__text">"He was playing RuneScape. I sent a Just Choose. He answered in 3 seconds."</p>
+            <span class="speech-bubble__author">— @gamingwidow</span>
+          </div>
+          <div class="speech-bubble reveal reveal-delay-3" style="background: var(--mint);">
+            <p class="speech-bubble__text">"POV: you're in IKEA and he has 5 minutes to answer."</p>
+            <span class="speech-bubble__author">— @homedecordrama</span>
+          </div>
+          <div class="speech-bubble reveal reveal-delay-4" style="background: var(--coral-soft);">
+            <p class="speech-bubble__text">"Group chat debate? No. Just Choose. Settled it in literally 10 seconds."</p>
+            <span class="speech-bubble__author">— @friendgroupchaos</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ====== THEMES SHOWCASE ====== -->
+  <section class="section" id="themes">
+    <div class="container">
+      <div class="text-center reveal" style="margin-bottom: 32px;">
+        <span class="section-label">Personalise</span>
+        <h2 class="text-h1" style="margin-top: 16px;">Your vibe. Your app.</h2>
+        <p class="text-body" style="margin-top: 12px; max-width: 450px; margin-left: auto; margin-right: auto;">
+          Six hand-crafted themes to match your mood. From warm and sunny to dark and moody.
+        </p>
+      </div>
+
+      <div class="themes__preview reveal">
+        <div class="theme-card" style="background: #FFF7E8;">
+          <div class="theme-card__name">Classic</div>
+          <div class="theme-card__swatches">
+            <div class="theme-swatch" style="background: #FFF7E8;"></div>
+            <div class="theme-swatch" style="background: #FF4F59;"></div>
+            <div class="theme-swatch" style="background: #FF9F1C;"></div>
+            <div class="theme-swatch" style="background: #00A88E;"></div>
+          </div>
+        </div>
+        <div class="theme-card" style="background: #F5F5F5; color: #121212;">
+          <div class="theme-card__name">Monochrome</div>
+          <div class="theme-card__swatches">
+            <div class="theme-swatch" style="background: #F5F5F5;"></div>
+            <div class="theme-swatch" style="background: #000000;"></div>
+            <div class="theme-swatch" style="background: #757575;"></div>
+            <div class="theme-swatch" style="background: #E0E0E0;"></div>
+          </div>
+        </div>
+        <div class="theme-card" style="background: #FFF5F7;">
+          <div class="theme-card__name">Pink Blossom</div>
+          <div class="theme-card__swatches">
+            <div class="theme-swatch" style="background: #FFF5F7;"></div>
+            <div class="theme-swatch" style="background: #FFB6C1;"></div>
+            <div class="theme-swatch" style="background: #F28FB0;"></div>
+            <div class="theme-swatch" style="background: #A0D8B3;"></div>
+          </div>
+        </div>
+        <div class="theme-card" style="background: #F5F8FF;">
+          <div class="theme-card__name">Soft Horizon</div>
+          <div class="theme-card__swatches">
+            <div class="theme-swatch" style="background: #F5F8FF;"></div>
+            <div class="theme-swatch" style="background: #B6CFFF;"></div>
+            <div class="theme-swatch" style="background: #8FB2F2;"></div>
+            <div class="theme-swatch" style="background: #A0D8B3;"></div>
+          </div>
+        </div>
+        <div class="theme-card" style="background: #F5FFF8;">
+          <div class="theme-card__name">Pear Garden</div>
+          <div class="theme-card__swatches">
+            <div class="theme-swatch" style="background: #F5FFF8;"></div>
+            <div class="theme-swatch" style="background: #A8DBBC;"></div>
+            <div class="theme-swatch" style="background: #8FC9A3;"></div>
+            <div class="theme-swatch" style="background: #D1B3DF;"></div>
+          </div>
+        </div>
+        <div class="theme-card" style="background: #FAF5FF;">
+          <div class="theme-card__name">Lavender Haze</div>
+          <div class="theme-card__swatches">
+            <div class="theme-swatch" style="background: #FAF5FF;"></div>
+            <div class="theme-swatch" style="background: #D8B4FE;"></div>
+            <div class="theme-swatch" style="background: #C4B5FD;"></div>
+            <div class="theme-swatch" style="background: #A0D8B3;"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ====== FINAL CTA ====== -->
+  <section class="section section--butter cta-section" id="download">
+    <div class="cta__deco cta__deco--1"></div>
+    <div class="cta__deco cta__deco--2"></div>
+    <div class="container cta-section__inner">
+      <div class="reveal">
+        <span class="section-label" style="background: var(--surface);">Stop the Madness</span>
+        <h2 class="text-title cta__title" style="margin-top: 24px;">
+          They won't choose?<br>
+          <span style="color: var(--coral);">Make them.</span>
+        </h2>
+        <p class="cta__subtitle">
+          Download Just Choose. Create your first decision in under 30 seconds. And that's it.
+        </p>
+        <div class="cta__actions">
+          <a href="#" id="cta-download-ios" style="display: inline-block; transition: transform 0.2s;">
+            <img src="https://upload.wikimedia.org/wikipedia/commons/3/3c/Download_on_the_App_Store_Badge.svg" alt="Download on the App Store" style="height: 48px;">
+          </a>
+          <a href="#" id="cta-download-android" style="display: inline-block; transition: transform 0.2s;">
+            <img src="https://upload.wikimedia.org/wikipedia/commons/7/78/Google_Play_Store_badge_EN.svg" alt="Get it on Google Play" style="height: 48px;">
+          </a>
+        </div>
+        <p class="text-small" style="margin-top: 24px; text-align: center;">
+          Completely ad-free, and your decisions are private, always.
+        </p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ====== FOOTER ====== -->
+  <footer class="footer" id="footer">
+    <div class="container">
+      <div class="footer__grid">
+        <div>
+          <div class="navbar__brand" style="margin-bottom: 4px;">
+            <img src="images/app-icon.png" alt="Just Choose" class="navbar__icon" style="border-color: rgba(255,247,232,0.3);">
+            <span class="navbar__name" style="color: #FFF7E8;">Just Choose</span>
+          </div>
+          <p class="footer__brand-description">
+            The private decision app for couples, friends, and families who are done hearing "I don't mind". Just Choose. It'll take five seconds.
+          </p>
+        </div>
+        <div>
+          <h4 class="footer__heading">Product</h4>
+          <ul class="footer__link-list">
+            <li><a href="#features" class="footer__link">Features</a></li>
+            <li><a href="#how-it-works" class="footer__link">How It Works</a></li>
+            <li><a href="#themes" class="footer__link">Themes</a></li>
+            <li><a href="#download" class="footer__link">Download</a></li>
+          </ul>
+        </div>
+        <div>
+          <h4 class="footer__heading">Legal</h4>
+          <ul class="footer__link-list">
+            <li><a href="privacy.html" class="footer__link">Privacy Policy</a></li>
+            <li><a href="#" class="footer__link">Terms of Service</a></li>
+          </ul>
+        </div>
+        <div>
+          <h4 class="footer__heading">Connect</h4>
+          <ul class="footer__link-list">
+            <li><a href="contact.html" class="footer__link">Contact Us</a></li>
+          </ul>
+        </div>
+      </div>
+      <div class="footer__bottom">
+        <span>&copy; 2026 Safain Labs Ltd. All rights reserved.</span>
+        <span>Made with 😤 by people who are tired of "I don't know".</span>
+      </div>
+    </div>
+  </footer>
+
+  <!-- ====== SCRIPTS ====== -->
+  <script>
+    // Navbar scroll effect
+    const navbar = document.getElementById('navbar');
+    let lastScroll = 0;
+
+    window.addEventListener('scroll', () => {
+      const currentScroll = window.scrollY;
+      if (currentScroll > 60) {
+        navbar.classList.add('scrolled');
+      } else {
+        navbar.classList.remove('scrolled');
+      }
+      lastScroll = currentScroll;
+    }, { passive: true });
+
+    // Scroll reveal (Intersection Observer)
+    const revealElements = document.querySelectorAll('.reveal');
+
+    const revealObserver = new IntersectionObserver((entries) => {
+      entries.forEach(entry => {
+        if (entry.isIntersecting) {
+          entry.target.classList.add('revealed');
+          revealObserver.unobserve(entry.target);
+        }
+      });
+    }, {
+      threshold: 0.15,
+      rootMargin: '0px 0px -60px 0px'
+    });
+
+    revealElements.forEach(el => revealObserver.observe(el));
+
+    // Smooth scroll for anchor links
+    document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+      anchor.addEventListener('click', function(e) {
+        const targetId = this.getAttribute('href');
+        if (targetId === '#') return;
+        const target = document.querySelector(targetId);
+        if (target) {
+          e.preventDefault();
+          target.scrollIntoView({ behavior: 'smooth' });
+        }
+      });
+    });
+
+    // Mobile menu (simple toggle)
+    const mobileBtn = document.getElementById('mobile-menu-btn');
+    const navLinks = document.querySelector('.navbar__links');
+    let menuOpen = false;
+
+    if (mobileBtn) {
+      mobileBtn.addEventListener('click', () => {
+        menuOpen = !menuOpen;
+        if (menuOpen) {
+          navLinks.style.display = 'flex';
+          navLinks.style.flexDirection = 'column';
+          navLinks.style.position = 'absolute';
+          navLinks.style.top = '100%';
+          navLinks.style.left = '0';
+          navLinks.style.right = '0';
+          navLinks.style.background = 'rgba(255, 247, 232, 0.97)';
+          navLinks.style.backdropFilter = 'blur(20px)';
+          navLinks.style.padding = '24px';
+          navLinks.style.borderBottom = '2px solid #18120F';
+          navLinks.style.gap = '16px';
+          navLinks.style.boxShadow = '0 8px 0 rgba(0,0,0,0.08)';
+        } else {
+          navLinks.style.display = '';
+          navLinks.style.flexDirection = '';
+          navLinks.style.position = '';
+          navLinks.style.top = '';
+          navLinks.style.left = '';
+          navLinks.style.right = '';
+          navLinks.style.background = '';
+          navLinks.style.backdropFilter = '';
+          navLinks.style.padding = '';
+          navLinks.style.borderBottom = '';
+          navLinks.style.gap = '';
+          navLinks.style.boxShadow = '';
+        }
+      });
+    }
+
+    // Parallax-like effect on hero blobs
+    window.addEventListener('mousemove', (e) => {
+      const blobs = document.querySelectorAll('.hero__blob');
+      const x = (e.clientX / window.innerWidth - 0.5) * 20;
+      const y = (e.clientY / window.innerHeight - 0.5) * 20;
+      blobs.forEach((blob, i) => {
+        const factor = (i + 1) * 0.6;
+        blob.style.transform = `translate(${x * factor}px, ${y * factor}px)`;
+      });
+    }, { passive: true });
+  </script>
+</body>
+</html>

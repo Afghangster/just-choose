@@ -2,6 +2,7 @@ import "react-native-url-polyfill/auto";
 
 import { NavigationContainer } from "@react-navigation/native";
 import type { LinkingOptions } from "@react-navigation/native";
+import * as Linking from "expo-linking";
 import { StatusBar } from "expo-status-bar";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 
@@ -10,7 +11,7 @@ import type { RootStackParamList } from "./src/navigation/types";
 import { ThemeProvider } from "./src/theme";
 
 const linking: LinkingOptions<RootStackParamList> = {
-  prefixes: ["justchoose://"],
+  prefixes: [Linking.createURL("/"), "justchoose://"],
   config: {
     screens: {
       Auth: "auth/callback",

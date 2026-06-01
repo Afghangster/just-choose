@@ -1,9 +1,14 @@
 import type { ReactNode } from "react";
-import { useEffect, useMemo } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { LinearGradient } from "expo-linear-gradient";
 import {
+  Alert,
   Animated,
+  Dimensions,
   Image,
+  Modal,
+  NativeScrollEvent,
+  NativeSyntheticEvent,
   Pressable,
   RefreshControl,
   ScrollView,
@@ -20,14 +25,17 @@ import { useTheme, radii, spacing, typography } from "../theme";
 type ScreenProps = {
   children: ReactNode;
   title?: string;
+  titleImage?: any;
+  titleVariant?: "title" | "h1";
   subtitle?: string;
   footer?: ReactNode;
   onRefresh?: () => void;
   refreshing?: boolean;
   safeAreaEdges?: Edge[];
+  headerRight?: ReactNode;
 };
 
-export function Screen({ children, title, subtitle, footer, onRefresh, refreshing, safeAreaEdges }: ScreenProps) {
+export function Screen({ children, title, titleImage, titleVariant = "title", subtitle, footer, onRefresh, refreshing, safeAreaEdges, headerRight }: ScreenProps) {
   const styles = useStyles();
   return (
     <SafeAreaView style={styles.safeArea} edges={safeAreaEdges}>
@@ -42,9 +50,15 @@ export function Screen({ children, title, subtitle, footer, onRefresh, refreshin
           ) : undefined
         }
       >
-        {title ? (
+        {title || titleImage || headerRight ? (
           <View style={styles.header}>
-            <Text style={styles.title}>{title}</Text>
+            {titleImage ? <Image source={titleImage} style={{ height: 64, resizeMode: "contain" }} /> : null}
+            {title ? <Text style={[styles.title, titleVariant === "h1" && styles.titleH1, headerRight ? { paddingHorizontal: 40 } : null]}>{title}</Text> : null}
+            {headerRight ? (
+              <View style={styles.headerRightContainer}>
+                {headerRight}
+              </View>
+            ) : null}
           </View>
         ) : null}
         {subtitle ? <Text style={styles.subtitle}>{subtitle}</Text> : null}
@@ -55,9 +69,9 @@ export function Screen({ children, title, subtitle, footer, onRefresh, refreshin
   );
 }
 
-export function Card({ children }: { children: ReactNode }) {
+export function Card({ children, style }: { children: ReactNode; style?: any }) {
   const styles = useStyles();
-  return <View style={styles.card}>{children}</View>;
+  return <View style={[styles.card, style]}>{children}</View>;
 }
 
 export function ActivityCard({ children, onPress }: { children: ReactNode; onPress?: () => void }) {
@@ -106,14 +120,9 @@ export function Button({
       ]}
     >
       {variant === "primary" ? (
-        <LinearGradient
-          colors={[colors.coral, colors.amber] as const}
-          start={{ x: 0, y: 0.5 }}
-          end={{ x: 1, y: 0.5 }}
-          style={[styles.button, styles.button_primary]}
-        >
+        <View style={[styles.button, styles.button_primary]}>
           {content}
-        </LinearGradient>
+        </View>
       ) : (
         <View style={[styles.button, styles[`button_${variant}`]]}>{content}</View>
       )}
@@ -281,13 +290,15 @@ export function ToggleRow({
 export function Pill({
   children,
   tone = "neutral",
+  style,
 }: {
   children: ReactNode;
   tone?: "neutral" | "teal" | "coral" | "amber" | "green";
+  style?: any;
 }) {
   const styles = useStyles();
   return (
-    <View style={[styles.pill, styles[`pill_${tone}`]]}>
+    <View style={[styles.pill, styles[`pill_${tone}`], style]}>
       <Text style={styles.pillText}>{children}</Text>
     </View>
   );
@@ -327,7 +338,38 @@ export function OptionPreview({
   );
 }
 
+export function Avatar({ name, size = 54, imageUrl }: { name: string; size?: number; imageUrl?: string | null }) {
+  const { colors } = useTheme();
+  const initials = name
+    ? name.split(' ').map(n => n[0]).filter(Boolean).slice(0, 2).join('').toUpperCase()
+    : '?';
 
+  return (
+    <View style={{
+      width: size,
+      height: size,
+      borderRadius: size / 2,
+      backgroundColor: colors.coralSoft,
+      alignItems: 'center',
+      justifyContent: 'center',
+      borderWidth: 2,
+      borderColor: colors.coral,
+      overflow: 'hidden',
+    }}>
+      {imageUrl ? (
+        <Image source={{ uri: imageUrl }} style={{ width: size, height: size }} />
+      ) : (
+        <Text style={{
+          color: colors.coral,
+          fontSize: size * 0.4,
+          fontWeight: '900',
+        }}>
+          {initials}
+        </Text>
+      )}
+    </View>
+  );
+}
 
 export function useStyles() {
   const { colors } = useTheme();
@@ -351,17 +393,30 @@ export function useStyles() {
     header: {
       gap: spacing.md,
       paddingTop: spacing.sm,
+      alignItems: "center",
+      position: "relative",
+    },
+    headerRightContainer: {
+      position: "absolute",
+      right: 0,
+      top: spacing.sm,
+      justifyContent: "flex-start",
     },
     title: {
       ...typography.title,
       color: colors.ink,
       letterSpacing: 0,
       textTransform: "uppercase",
+      textAlign: "center",
+    },
+    titleH1: {
+      ...typography.h1,
     },
     subtitle: {
       ...typography.body,
       color: colors.muted,
       maxWidth: 320,
+      textAlign: "center",
     },
     markerAccent: {
       backgroundColor: colors.coral,
@@ -429,27 +484,27 @@ export function useStyles() {
       borderWidth: 2,
       gap: spacing.lg,
       padding: spacing.xl,
-      shadowColor: colors.ink,
+      shadowColor: "#000000",
       shadowOffset: { width: 6, height: 8 },
       shadowOpacity: 0.16,
       shadowRadius: 0,
       elevation: 6,
     },
     activityCard: {
-      backgroundColor: colors.coralSoft,
-      borderColor: colors.ink,
-      borderRadius: radii.xl + 4,
-      borderWidth: 3,
-      padding: spacing.xl,
-      shadowColor: colors.ink,
-      shadowOffset: { width: 4, height: 6 },
-      shadowOpacity: 0.16,
-      shadowRadius: 0,
-      elevation: 4,
+      backgroundColor: colors.background,
+      borderColor: colors.border,
+      borderRadius: 24,
+      borderWidth: 1,
+      padding: spacing.md,
+      shadowColor: colors.muted,
+      shadowOffset: { width: 0, height: 2 },
+      shadowOpacity: 0.1,
+      shadowRadius: 4,
+      elevation: 1,
     },
     buttonShell: {
       borderRadius: 999,
-      shadowColor: colors.ink,
+      shadowColor: "#000000",
       shadowOffset: { width: 4, height: 6 },
       shadowOpacity: 0.22,
       shadowRadius: 0,
@@ -466,7 +521,9 @@ export function useStyles() {
       paddingHorizontal: spacing.xl,
     },
     button_primary: {
-      borderColor: "rgba(255, 255, 255, 0.28)",
+      backgroundColor: "#FF5A5F",
+      borderColor: "#FF5A5F",
+      borderWidth: 2,
     },
     button_secondary: {
       backgroundColor: colors.surface,
@@ -478,7 +535,7 @@ export function useStyles() {
       borderColor: "transparent",
     },
     button_danger: {
-      backgroundColor: colors.coralSoft,
+      backgroundColor: colors.dangerSoft,
       borderColor: colors.ink,
       borderWidth: 2,
     },
@@ -520,7 +577,7 @@ export function useStyles() {
     input: {
       backgroundColor: "#FFFFFF",
       borderColor: colors.ink,
-      borderRadius: radii.lg,
+      borderRadius: 12,
       borderWidth: 2,
       color: colors.ink,
       fontSize: 16,
@@ -541,7 +598,7 @@ export function useStyles() {
       padding: spacing.lg,
       textAlign: "center",
       lineHeight: 34,
-      shadowColor: colors.ink,
+      shadowColor: "#000000",
       shadowOffset: { width: 4, height: 6 },
       shadowOpacity: 0.18,
       shadowRadius: 0,
@@ -579,7 +636,7 @@ export function useStyles() {
     },
     segmentOptionSelected: {
       backgroundColor: colors.coral,
-      shadowColor: colors.ink,
+      shadowColor: "#000000",
       shadowOffset: { width: 2, height: 3 },
       shadowOpacity: 0.18,
       shadowRadius: 0,
@@ -648,7 +705,7 @@ export function useStyles() {
       borderWidth: 2,
       gap: spacing.sm,
       padding: spacing.xl,
-      shadowColor: colors.ink,
+      shadowColor: "#000000",
       shadowOffset: { width: 4, height: 6 },
       shadowOpacity: 0.14,
       shadowRadius: 0,
@@ -661,7 +718,7 @@ export function useStyles() {
       borderWidth: 4,
       gap: spacing.lg,
       padding: spacing.xxl,
-      shadowColor: colors.ink,
+      shadowColor: "#000000",
       shadowOffset: { width: 6, height: 10 },
       shadowOpacity: 0.18,
       shadowRadius: 0,
@@ -686,7 +743,7 @@ export function useStyles() {
       flexDirection: "row",
       gap: spacing.md,
       overflow: "hidden",
-      shadowColor: colors.ink,
+      shadowColor: "#000000",
       shadowOffset: { width: 4, height: 6 },
       shadowOpacity: 0.12,
       shadowRadius: 0,
@@ -715,7 +772,7 @@ export function useStyles() {
       justifyContent: "space-between",
       maxWidth: 390,
       padding: spacing.xs,
-      shadowColor: colors.ink,
+      shadowColor: "#000000",
       shadowOffset: { width: 4, height: 6 },
       shadowOpacity: 0.18,
       shadowRadius: 0,
@@ -727,10 +784,400 @@ export function useStyles() {
       borderRadius: 999,
       flex: 1,
       justifyContent: "center",
-      minHeight: 48,
+      minHeight: 42,
     },
     tabItemActive: {
-      backgroundColor: colors.coralSoft,
+      backgroundColor: colors.activeTabBg,
     },
   }), [colors]);
+}
+
+export function useDecisionGridStyles() {
+  const { colors } = useTheme();
+
+  return useMemo(() => StyleSheet.create({
+    section: {
+      flexDirection: "row",
+      flexWrap: "wrap",
+      justifyContent: "center",
+      gap: spacing.md,
+      paddingHorizontal: spacing.md,
+      paddingVertical: spacing.lg,
+    },
+    card: {
+      borderColor: colors.ink,
+      borderRadius: 24,
+      borderWidth: 3,
+      gap: spacing.sm,
+      padding: spacing.md,
+      shadowColor: colors.ink,
+      shadowOffset: { width: 4, height: 5 },
+      shadowOpacity: 0.18,
+      shadowRadius: 0,
+      width: "46%",
+      aspectRatio: 0.9,
+      elevation: 6,
+      alignItems: "center",
+      justifyContent: "center",
+    },
+    cardSelected: {
+      transform: [{ scale: 1.05 }],
+      shadowOffset: { width: 6, height: 8 },
+      borderWidth: 4,
+    },
+    cardDimmed: {
+      transform: [{ scale: 0.95 }],
+      opacity: 0.5,
+    },
+    imageArea: {
+      alignItems: "center",
+      backgroundColor: "rgba(255, 255, 255, 0.66)",
+      borderColor: colors.ink,
+      borderRadius: 16,
+      borderWidth: 2,
+      flex: 1,
+      justifyContent: "center",
+      overflow: "hidden",
+      width: "100%",
+    },
+    imagePlaceholder: {
+      backgroundColor: "rgba(255, 255, 255, 0.4)",
+    },
+    image: {
+      height: "100%",
+      width: "100%",
+    },
+    optionTitle: {
+      color: colors.ink,
+      fontSize: 16,
+      fontWeight: "900",
+      textAlign: "center",
+    },
+  }), [colors]);
+}
+
+export function isColorDark(hex: string) {
+  const h = hex.replace('#', '');
+  if (h.length !== 6) return false;
+  const r = parseInt(h.substring(0, 2), 16);
+  const g = parseInt(h.substring(2, 4), 16);
+  const b = parseInt(h.substring(4, 6), 16);
+  return Math.sqrt(0.299 * r * r + 0.587 * g * g + 0.114 * b * b) < 127.5;
+}
+
+export type DecisionGridOption = {
+  id: string;
+  title?: string | null;
+  label: string;
+  imageUrl?: string | null;
+};
+
+type DecisionGridProps = {
+  options: DecisionGridOption[];
+  activeId?: string | null;
+  onOptionSelect?: (id: string) => void;
+  viewOnly?: boolean;
+};
+
+export function DecisionGrid({ options, activeId, onOptionSelect, viewOnly = false }: DecisionGridProps) {
+  const gridStyles = useDecisionGridStyles();
+  const { colors } = useTheme();
+  const [expandedIndex, setExpandedIndex] = useState<number | null>(null);
+
+  const cardColors = useMemo(() => [colors.coral, colors.butter, colors.mint, colors.blueSoft, colors.peach, colors.purpleSoft], [colors]);
+
+  return (
+    <View style={gridStyles.section}>
+      {options.map((option, index) => {
+        const isSelected = activeId === option.id;
+        const isDimmed = !viewOnly && activeId && !isSelected;
+
+        return (
+          <Pressable
+            key={option.id}
+            onPress={() => !viewOnly && onOptionSelect?.(option.id)}
+            onLongPress={() => {
+              if (option.title || option.label) {
+                setExpandedIndex(index);
+              }
+            }}
+            style={[
+              gridStyles.card,
+              { backgroundColor: cardColors[index % cardColors.length] },
+              isSelected && !viewOnly && gridStyles.cardSelected,
+              isDimmed && gridStyles.cardDimmed,
+              option.imageUrl ? { justifyContent: "space-between" } : null,
+            ]}
+          >
+            {option.imageUrl ? (
+              <View style={gridStyles.imageArea}>
+                <Image source={{ uri: option.imageUrl }} style={gridStyles.image} />
+              </View>
+            ) : null}
+            <View style={!option.imageUrl ? { flex: 1, justifyContent: "center" } : undefined}>
+              <Text style={[
+                gridStyles.optionTitle, 
+                { fontSize: (option.title || option.label).length > 20 ? 18 : 22 },
+                { color: isColorDark(cardColors[index % cardColors.length]) ? "#FFFFFF" : colors.ink }
+              ]} numberOfLines={3}>
+                {option.title || option.label}
+              </Text>
+            </View>
+          </Pressable>
+        );
+      })}
+      <ExpandedCardModal 
+        option={expandedIndex !== null ? options[expandedIndex] : null}
+        color={expandedIndex !== null ? cardColors[expandedIndex % cardColors.length] : colors.surface}
+        visible={expandedIndex !== null}
+        onClose={() => setExpandedIndex(null)}
+      />
+    </View>
+  );
+}
+
+export function QuestionArea({ question, comment }: { question?: string | null; comment?: string | null }) {
+  const [expanded, setExpanded] = useState(false);
+  const [isTruncated, setIsTruncated] = useState(false);
+  const { colors } = useTheme();
+  const styles = useStyles();
+
+  if (!question && !comment) return null;
+
+  const len = question?.length || 0;
+  const isShort = len < 50;
+  const isMedium = len >= 50 && len < 90;
+  
+  const textStyle = [
+    styles.title,
+    isMedium && { fontSize: 28, lineHeight: 32 },
+    !isShort && !isMedium && { fontSize: 22, lineHeight: 28 }
+  ];
+
+  const handleTextLayout = (e: NativeSyntheticEvent<any>) => {
+    if (!expanded) {
+      // If the layout engine had to truncate the lines based on numberOfLines
+      // Some React Native versions pass `didExceedMaxLines` or we check lines length
+      // Actually `onTextLayout` fires with all lines if not truncated, or exactly 4 lines if truncated and it would have been more
+      // Wait, `onTextLayout` reports the lines that are rendered. 
+      // A safer check is if we see 4 lines, we just assume it MIGHT be truncated, or use a heuristic.
+      // Better heuristic: if len > 120 and lines.length >= 4.
+      if (e.nativeEvent.lines.length >= 4 && len > 100) {
+        setIsTruncated(true);
+      }
+    }
+  };
+
+  return (
+    <View style={{ gap: spacing.sm, paddingHorizontal: spacing.md, marginBottom: spacing.md }}>
+      {question ? (
+        <View>
+          <Text 
+            style={textStyle} 
+            numberOfLines={expanded ? undefined : 4}
+            onTextLayout={handleTextLayout}
+          >
+            {question}
+          </Text>
+          {isTruncated && !expanded && (
+            <Pressable onPress={() => setExpanded(true)} hitSlop={12} style={{ marginTop: spacing.sm }}>
+              <Text style={{ fontSize: 16, color: colors.teal, fontWeight: "900", textTransform: "uppercase", textAlign: "center" }}>
+                Read more
+              </Text>
+            </Pressable>
+          )}
+        </View>
+      ) : null}
+      {comment ? (
+        <Text style={[styles.subtitle, { alignSelf: "center", marginTop: spacing.xs }]}>
+          {comment}
+        </Text>
+      ) : null}
+    </View>
+  );
+}
+
+
+export function useDecisionCarouselStyles() {
+  const { colors } = useTheme();
+
+  return useMemo(() => StyleSheet.create({
+    section: {
+      gap: spacing.md,
+    },
+    card: {
+      borderColor: colors.ink,
+      borderRadius: 34,
+      borderWidth: 3,
+      gap: spacing.md,
+      padding: spacing.lg,
+      shadowColor: colors.ink,
+      shadowOffset: { width: 7, height: 9 },
+      shadowOpacity: 0.18,
+      shadowRadius: 0,
+      width: 258,
+      elevation: 6,
+      alignItems: "center",
+    },
+    cardSelected: {
+      transform: [{ scale: 1.05 }],
+      shadowOffset: { width: 9, height: 11 },
+      borderWidth: 4,
+    },
+    cardDimmed: {
+      transform: [{ scale: 0.95 }],
+      opacity: 0.5,
+    },
+    imageArea: {
+      alignItems: "center",
+      backgroundColor: "rgba(255, 255, 255, 0.66)",
+      borderColor: colors.ink,
+      borderRadius: 28,
+      borderWidth: 2,
+      height: 180,
+      justifyContent: "center",
+      overflow: "hidden",
+      width: "100%",
+    },
+    imagePlaceholder: {
+      backgroundColor: "rgba(255, 255, 255, 0.4)",
+    },
+    image: {
+      height: "100%",
+      width: "100%",
+    },
+    optionTitle: {
+      color: colors.ink,
+      fontWeight: "900",
+      textAlign: "center",
+    },
+  }), [colors]);
+}
+
+type DecisionCarouselProps = {
+  options: DecisionGridOption[];
+  activeId?: string | null;
+  onOptionSelect?: (id: string) => void;
+  viewOnly?: boolean;
+};
+
+export function DecisionCarousel({ options, activeId, onOptionSelect, viewOnly = false }: DecisionCarouselProps) {
+  const carouselStyles = useDecisionCarouselStyles();
+  const { colors } = useTheme();
+  const [expandedIndex, setExpandedIndex] = useState<number | null>(null);
+  
+  const screenWidth = Dimensions.get("window").width;
+  const CARD_WIDTH = 258;
+  const CARD_GAP = spacing.md;
+  const SIDE_PADDING = (screenWidth - CARD_WIDTH) / 2;
+
+  const cardColors = useMemo(() => [colors.coral, colors.butter, colors.mint, colors.blueSoft, colors.peach, colors.purpleSoft], [colors]);
+
+  return (
+    <View style={carouselStyles.section}>
+      <ScrollView
+        horizontal
+        showsHorizontalScrollIndicator={false}
+        decelerationRate="fast"
+        snapToInterval={CARD_WIDTH + CARD_GAP}
+        snapToAlignment="start"
+        contentContainerStyle={{
+          paddingHorizontal: SIDE_PADDING,
+          gap: CARD_GAP,
+          paddingVertical: spacing.md,
+        }}
+        style={{ marginHorizontal: -spacing.xl }}
+      >
+        {options.map((option, index) => {
+          const isSelected = activeId === option.id;
+          const isDimmed = !viewOnly && activeId && !isSelected;
+
+          return (
+            <Pressable
+              key={option.id}
+              onPress={() => !viewOnly && onOptionSelect?.(option.id)}
+              onLongPress={() => {
+                if (option.title || option.label) {
+                  setExpandedIndex(index);
+                }
+              }}
+              style={[
+                carouselStyles.card,
+                { backgroundColor: cardColors[index % cardColors.length] },
+                isSelected && !viewOnly && carouselStyles.cardSelected,
+                isDimmed && carouselStyles.cardDimmed,
+                option.imageUrl ? { justifyContent: "space-between" } : null,
+              ]}
+            >
+              {option.imageUrl ? (
+                <View style={carouselStyles.imageArea}>
+                  <Image source={{ uri: option.imageUrl }} style={carouselStyles.image} />
+                </View>
+              ) : null}
+              <View style={!option.imageUrl ? { flex: 1, justifyContent: "center" } : undefined}>
+                <Text style={[
+                  carouselStyles.optionTitle, 
+                  { fontSize: (option.title || option.label).length > 20 ? 18 : 22 },
+                  { color: isColorDark(cardColors[index % cardColors.length]) ? "#FFFFFF" : colors.ink }
+                ]} numberOfLines={3}>
+                  {option.title || option.label}
+                </Text>
+              </View>
+            </Pressable>
+          );
+        })}
+      </ScrollView>
+      <ExpandedCardModal 
+        option={expandedIndex !== null ? options[expandedIndex] : null}
+        color={expandedIndex !== null ? cardColors[expandedIndex % cardColors.length] : colors.surface}
+        visible={expandedIndex !== null}
+        onClose={() => setExpandedIndex(null)}
+      />
+    </View>
+  );
+}
+
+export function ExpandedCardModal({ option, color, visible, onClose }: { option: any, color: string, visible: boolean, onClose: () => void }) {
+  const { colors } = useTheme();
+  if (!option) return null;
+
+  return (
+    <Modal visible={visible} transparent animationType="fade" onRequestClose={onClose}>
+      <Pressable style={{ flex: 1, backgroundColor: "rgba(24, 18, 15, 0.8)", padding: spacing.xl, justifyContent: "center", alignItems: "center" }} onPress={onClose}>
+        <Pressable 
+          style={{ 
+            backgroundColor: color, 
+            borderColor: colors.ink,
+            borderWidth: 4,
+            borderRadius: 34,
+            padding: spacing.xl,
+            width: "100%",
+            maxHeight: "80%",
+            shadowColor: colors.ink,
+            shadowOffset: { width: 8, height: 10 },
+            shadowOpacity: 1,
+            shadowRadius: 0,
+            elevation: 10,
+          }}
+          onPress={(e) => e.stopPropagation()}
+        >
+          <ScrollView bounces={false} contentContainerStyle={{ gap: spacing.md, paddingVertical: spacing.md }} showsVerticalScrollIndicator={false}>
+            {option.imageUrl ? (
+              <View style={{ width: "100%", aspectRatio: 1, borderRadius: 24, overflow: "hidden", borderWidth: 3, borderColor: colors.ink, backgroundColor: "rgba(255, 255, 255, 0.66)" }}>
+                <Image source={{ uri: option.imageUrl }} style={{ width: "100%", height: "100%" }} />
+              </View>
+            ) : null}
+            <Text style={{
+              color: isColorDark(color) ? "#FFFFFF" : colors.ink,
+              fontSize: 32,
+              fontWeight: "900",
+              textAlign: "center",
+            }}>
+              {option.title || option.label}
+            </Text>
+          </ScrollView>
+        </Pressable>
+      </Pressable>
+    </Modal>
+  );
 }

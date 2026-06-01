@@ -10,7 +10,7 @@ Core product line:
 
 Store-safe description:
 
-> Just Choose is a private decision app for connected people. Create visual decision cards, compare options, and get quick one-tap answers from your connection. For urgent choices, optional Decision Lock lets a user temporarily shield selected distraction apps they choose, under their own limits, to help them respond faster. Your connection cannot directly control your phone.
+> Just Choose is a private decision app for connected people. Create visual decision cards, compare options, and get quick one-tap answers from your connection.
 
 ## MVP Layers
 
@@ -23,27 +23,10 @@ Layer 1 is shared across iOS and Android:
 - Decision creation with 2-6 visual options
 - One-tap answers and valid non-choice answers
 - Results, boards, archive, settings
-- Push notifications and nudge reminders
+- Push notifications for new decisions
 - Safety/privacy screens
 
-Layer 2 is platform-specific Decision Lock:
-
-- iOS: use Screen Time APIs only in builds with the approved Family Controls entitlement.
-- Android: MVP defaults to persistent notifications, in-app lock screen, and soft-lock reminders unless a stricter implementation is reviewed and policy-safe.
-
-## Decision Lock Product Rule
-
-The product must always be able to honestly say:
-
-> Your connection cannot block your phone. You can choose to temporarily shield selected distractions when you ignore urgent decisions from your connection.
-
-Connection-side urgent copy:
-
-> This may trigger their Decision Lock if they have enabled it.
-
-Softer connection-side copy:
-
-> If they have opted in, Just Choose may nudge them more strongly.
+Layer 2 is deferred until after the first public release.
 
 ## MVP Completion Gates
 
@@ -54,8 +37,6 @@ Softer connection-side copy:
 - A creator can create visual decisions with 2-6 options.
 - The connected person can answer in one tap or use a valid non-choice answer.
 - The creator can see the result and archive the decision.
-- Urgent decisions schedule push/nudge notifications.
-- The answering user can configure Decision Lock limits, quiet hours, selected distraction apps where supported, and an allowed connection.
-- Decision Lock gracefully degrades when platform permissions are unavailable.
-- Connection access never includes editing another user’s Decision Lock settings.
+- New decisions can trigger push notifications.
+- Connection access never includes controlling another user's device.
 - The app includes privacy, terms, and account deletion entry points.

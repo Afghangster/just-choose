@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Just Choose — For people tired of 'I don't mind.'</title>
+  <meta name="description" content="A private decision app for couples. One person creates visual choices, the other just picks. No debates. No doomscrolling. Just choose.">
+
+  <!-- Open Graph -->
+  <meta property="og:title" content="Just Choose — For people tired of 'I don't mind.'">
+  <meta property="og:description" content="A private decision app for couples. One person creates visual choices, the other just picks. Quick, visual, private.">
+  <meta property="og:type" content="website">
+  <meta property="og:url" content="https://justchoooose.com">
+  <meta property="og:image" content="https://justchoooose.com/og-image.png">
+
+  <!-- Favicon placeholder -->
+  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>✅</text></svg>">
+
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+
+  <!-- ═══════ HERO ═══════ -->
+  <header class="hero">
+    <!-- Decorative blobs -->
+    <div class="hero-blob hero-blob-1" aria-hidden="true"></div>
+    <div class="hero-blob hero-blob-2" aria-hidden="true"></div>
+    <div class="hero-blob hero-blob-3" aria-hidden="true"></div>
+    <div class="hero-blob hero-blob-4" aria-hidden="true"></div>
+
+    <div class="hero-content container">
+      <!-- App Logo -->
+      <img src="JustChoose.png" class="logo" alt="Just Choose logo">
+
+      <h1 class="headline">For people tired of 'I don't mind.'</h1>
+      <p class="subtitle">One person creates the choices. The other just picks. No debates. No doomscrolling. Just choose.</p>
+
+      <div class="cta-group">
+        <a href="#" class="store-badge"><img src="app-store-badge.svg" alt="Download on the App Store"></a>
+        <a href="#" class="store-badge"><img src="google-play-badge.svg" alt="Get it on Google Play"></a>
+      </div>
+    </div>
+  </header>
+
+  <main>
+    <!-- ═══════ HOW IT WORKS ═══════ -->
+    <section class="section" id="how-it-works">
+      <div class="container">
+        <h2 class="section-title">How it works</h2>
+
+        <div class="grid-3">
+          <!-- Step 1 -->
+          <div class="card step-card fade-in">
+            <span class="step-number">1</span>
+            <span class="step-icon" aria-hidden="true">✏️</span>
+            <h2>Create</h2>
+            <p>Frame the question and add 2–6 options with photos, titles, or both.</p>
+          </div>
+
+          <!-- Step 2 -->
+          <div class="card step-card fade-in">
+            <span class="step-number">2</span>
+            <span class="step-icon" aria-hidden="true">📤</span>
+            <h2>Send</h2>
+            <p>Fire it off to your connection. They'll get a notification instantly.</p>
+          </div>
+
+          <!-- Step 3 -->
+          <div class="card step-card fade-in">
+            <span class="step-number">3</span>
+            <span class="step-icon" aria-hidden="true">✅</span>
+            <h2>Choose</h2>
+            <p>They pick one option. Done. No take-backs. The app has spoken.</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ═══════ APP SCREENSHOTS ═══════ -->
+    <section class="section" id="screenshots" style="background: var(--surface-muted);">
+      <div class="container">
+        <h2 class="section-title">Inside the App</h2>
+
+        <div class="carousel-container fade-in">
+          <div class="carousel-track">
+            <!-- App Screenshots -->
+            <div class="carousel-item">
+              <img src="SplashScreen.png" alt="Just Choose Splash Screen" class="screenshot">
+            </div>
+            <!-- More screenshots can be added here as needed -->
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ═══════ CTA BANNER ═══════ -->
+    <section class="section">
+      <div class="container">
+        <div class="cta-banner fade-in">
+          <h2>Stop overthinking.<br>Start choosing.</h2>
+          <div class="cta-group">
+            <a href="#" class="store-badge"><img src="app-store-badge.svg" alt="Download on the App Store"></a>
+            <a href="#" class="store-badge"><img src="google-play-badge.svg" alt="Get it on Google Play"></a>
+          </div>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <!-- ═══════ FOOTER ═══════ -->
+  <footer class="site-footer">
+    <div class="container">
+      <nav class="footer-links">
+        <a href="privacy.html">Privacy Policy</a>
+        <a href="mailto:mniekzad@gmail.com">Contact</a>
+      </nav>
+      <p class="copyright">© 2025 Safain Labs Ltd. All rights reserved.</p>
+      <p class="made-with">Made with 💛 for indecisive people everywhere.</p>
+    </div>
+  </footer>
+
+  <!-- Scroll-triggered fade-in -->
+  <script>
+    (function () {
+      const faders = document.querySelectorAll('.fade-in');
+      if (!faders.length) return;
+
+      const observer = new IntersectionObserver(
+        (entries) => {
+          entries.forEach((entry) => {
+            if (entry.isIntersecting) {
+              entry.target.classList.add('visible');
+              observer.unobserve(entry.target);
+            }
+          });
+        },
+        { threshold: 0.15, rootMargin: '0px 0px -40px 0px' }
+      );
+
+      faders.forEach((el) => observer.observe(el));
+    })();
+  </script>
+</body>
+</html>

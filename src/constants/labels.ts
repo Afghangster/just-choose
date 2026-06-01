@@ -38,28 +38,3 @@ export const responseTypeLabels: Partial<Record<ResponseType | string, string>> 
   call_me: "Call me",
   comment_only: "Comment only",
 };
-
-export const nudgeCopy = [
-  "Just choose. It’ll take five seconds.",
-  "A verdict is needed.",
-  "They’re waiting for your excellent taste.",
-  "Tiny decision. Big suspense.",
-  "Tap once and be helpful.",
-  "They’re in the shop. This is not a drill.",
-  "Your connection needs a quick answer.",
-];
-
-export const decisionLockCopy = {
-  title: "Decision Lock",
-  subtitle:
-    "Let Just Choose temporarily shield selected distraction apps when you ignore urgent decisions from your connection.",
-  disclosure:
-    "Decision Lock is optional. You control whether it is on, which apps can be shielded, how long it lasts, and when it can happen. Your connection cannot directly control your phone.",
-  permission:
-    "Just Choose needs permission to shield selected apps that you choose. This is used only for your own Decision Lock settings. Your connection cannot choose your blocked apps, change your limits, or block your phone directly.",
-  activeTitle: "Quick verdict needed",
-  activeBody:
-    "You chose to shield distractions until you answer this urgent decision or snooze it.",
-  connectedProfileUrgentHint: "This may trigger their Decision Lock if they have enabled it.",
-  connectedProfileNudgeHint: "If they have opted in, Just Choose may nudge them more strongly.",
-};

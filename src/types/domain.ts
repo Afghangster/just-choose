@@ -21,9 +21,12 @@ export type Profile = {
   displayName: string;
   profileDisplayName?: string;
   connectionDisplayName?: string | null;
+  connectionAvatarUrl?: string | null;
+  connectionAvatarPath?: string | null;
   age?: number | null;
   gender?: Gender | null;
   avatarUrl?: string | null;
+  avatarPath?: string | null;
 };
 
 export type Connection = {
@@ -52,6 +55,7 @@ export type DecisionOption = {
   label: string;
   title?: string | null;
   imageUrl?: string | null;
+  imagePath?: string | null;
   sortOrder: number;
 };
 
@@ -87,6 +91,7 @@ export type ChoiceOptionInput = {
   label: string;
   title?: string | null;
   imageUrl?: string | null;
+  imagePath?: string | null;
 };
 
 export type DecisionLockStatus =

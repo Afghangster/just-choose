@@ -1,5 +1,6 @@
-import React, { useEffect, useState, useMemo } from "react";
-import { Alert, Animated, Image, Platform, Pressable, ScrollView, Share, StyleSheet, Text, TextInput, View } from "react-native";
+import React, { useCallback, useEffect, useRef, useState, useMemo } from "react";
+import { Alert, Animated, Dimensions, Image, Modal, NativeScrollEvent, NativeSyntheticEvent, PanResponder, Platform, Pressable, ScrollView, Share, StyleSheet, Text, TextInput, View } from "react-native";
+import Svg, { Path } from "react-native-svg";
 import { LinearGradient } from "expo-linear-gradient";
 import type { NativeStackScreenProps } from "@react-navigation/native-stack";
 import * as AppleAuthentication from "expo-apple-authentication";
@@ -7,26 +8,30 @@ import * as Clipboard from "expo-clipboard";
 import * as Linking from "expo-linking";
 import * as WebBrowser from "expo-web-browser";
 import type { Edge } from "react-native-safe-area-context";
-import { Bookmark, CheckCircle2, ChevronRight, Clock, Copy, Home, LogOut, Mail, Palette, Plus, RefreshCw, Shield, SlidersHorizontal, Share2, ShieldCheck, Sparkles, UserRound, X } from "lucide-react-native";
+import { Bookmark, CheckCircle2, ChevronRight, Clock, Copy, Home, LogOut, Mail, Palette, Plus, RefreshCw, Shield, SlidersHorizontal, Share2, ShieldCheck, Sparkles, UserRound, X, MoreHorizontal, Trash2 } from "lucide-react-native";
 
 import {
-  ActivityCard,
   AnimatedResultCard,
+  Avatar,
   Button,
   Card,
+  DecisionCarousel,
+  DecisionGrid,
   EmptyState,
   LargeTextField,
   OptionPreview,
   Pill,
+  QuestionArea,
   Screen,
   Segment,
   TextField,
   useStyles,
 } from "../components/ui";
-import { pickDecisionImage, uploadDecisionImage } from "../services/imageService";
+import { chooseDecisionImage, uploadDecisionImage, uploadAvatarImage } from "../services/imageService";
 import {
   completeOAuthSignIn,
   resendSignupConfirmation,
+  startAppleOAuthSignIn,
   signInWithAppleIdentityToken,
   signInWithEmail,
   signUpWithEmail,
@@ -44,10 +49,30 @@ type Props<T extends keyof RootStackParamList> = NativeStackScreenProps<
   T
 >;
 
-const brandIcon = require("../../JustChoose.png");
+const brandIcon = require("../../assets/JustChoose.png");
+const splashIcon = require("../../assets/SplashScreen.png");
+
+const AppleIcon = ({ size, color }: { size: number, color: string }) => (
+  <Svg width={size} height={size} viewBox="0 0 384 512" fill={color}>
+    <Path d="M318.7 268.7c-.2-36.7 16.4-64.4 50-84.8-18.8-26.9-47.2-41.7-84.7-44.6-35.5-2.8-74.3 20.7-88.5 20.7-15 0-49.4-19.7-76.4-19.7C63.3 141.2 4 184.8 4 273.5q0 39.3 14.4 81.2c12.8 36.7 59 126.7 107.2 125.2 25.2-.6 43-17.9 75.8-17.9 31.8 0 48.3 17.9 76.4 17.9 48.6-.7 90.4-82.5 102.6-119.3-65.2-30.7-61.7-90-61.7-91.9zm-56.6-164.2c27.3-32.4 24.8-61.9 24-72.5-24.1 1.4-52 16.4-67.9 34.9-17.5 19.8-27.8 44.3-25.6 71.9 26.1 2 49.9-11.4 69.5-34.3z" />
+  </Svg>
+);
+
+const GoogleIcon = ({ size }: { size: number }) => (
+  <Svg width={size} height={size} viewBox="0 0 48 48">
+    <Path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.7 17.74 9.5 24 9.5z" />
+    <Path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z" />
+    <Path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z" />
+    <Path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.15 1.45-4.92 2.3-8.16 2.3-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z" />
+  </Svg>
+);
 const nativeHeaderScreenEdges: Edge[] = ["right", "bottom", "left"];
 
 WebBrowser.maybeCompleteAuthSession();
+
+function makeAuthRedirectUri() {
+  return Linking.createURL("auth/callback");
+}
 
 function getErrorMessage(error: unknown, fallback: string) {
   const maybeError = error as { message?: unknown; code?: unknown; status?: unknown } | null;
@@ -142,14 +167,12 @@ export function SplashScreen({ navigation }: Props<"Splash">) {
   }, [hydrateFromRemote, navigation]);
 
   return (
-    <Screen>
-      <View style={{ gap: spacing.lg, paddingTop: 120, alignItems: "center" }}>
-        <Animated.View style={{ opacity, transform: [{ translateY }], alignItems: "center", gap: spacing.lg }}>
-          <Image source={brandIcon} style={{ height: 110, width: 140, resizeMode: 'contain' }} />
-          <Pill tone="coral">End the 'where should we eat' debate.</Pill>
-        </Animated.View>
-      </View>
-    </Screen>
+    <View style={{ flex: 1, backgroundColor: "#ffffff" }}>
+      <Animated.Image
+        source={splashIcon}
+        style={{ flex: 1, width: "100%", height: "100%", resizeMode: "cover", opacity }}
+      />
+    </View>
   );
 }
 
@@ -158,6 +181,7 @@ export function AuthScreen({ navigation }: Props<"Auth">) {
   const hydrateFromRemote = useAppStore((state) => state.hydrateFromRemote);
   const pendingInviteCode = useAppStore((state) => state.pendingInviteCode);
   const [mode, setMode] = useState<"signup" | "signin">("signup");
+  const [showEmailForm, setShowEmailForm] = useState(false);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [busy, setBusy] = useState(false);
@@ -226,14 +250,32 @@ export function AuthScreen({ navigation }: Props<"Auth">) {
     }
   }
 
+  async function submitAppleOAuth() {
+    const redirectTo = makeAuthRedirectUri();
+    setBusy(true);
+    try {
+      const { url } = await startAppleOAuthSignIn(redirectTo);
+      const result = await WebBrowser.openAuthSessionAsync(url, redirectTo);
+      if (result.type !== "success") {
+        return;
+      }
+      const authResult = await completeOAuthSignIn(result.url);
+      await continueAfterAuth(authResult.userId);
+    } catch (error) {
+      Alert.alert("Apple sign-in issue", getErrorMessage(error, "Try again."));
+    } finally {
+      setBusy(false);
+    }
+  }
+
   async function submitGoogle() {
-    const redirectTo = "justchoose://auth/callback";
+    const redirectTo = makeAuthRedirectUri();
     setBusy(true);
     try {
       const { url } = await startGoogleSignIn(redirectTo);
       const result = await WebBrowser.openAuthSessionAsync(url, redirectTo);
       if (result.type !== "success") {
-        throw new Error("Google sign-in was cancelled.");
+        return;
       }
       const authResult = await completeOAuthSignIn(result.url);
       await continueAfterAuth(authResult.userId);
@@ -244,72 +286,107 @@ export function AuthScreen({ navigation }: Props<"Auth">) {
     }
   }
 
-  const platformButton =
-    Platform.OS === "ios" ? (
-      <Button
-        label="Continue with Apple"
-        variant="secondary"
-        icon={<Shield size={18} color={colors.ink} />}
-        disabled={busy}
-        onPress={submitApple}
-      />
-    ) : Platform.OS === "android" ? (
-      <Button
-        label="Continue with Google"
-        variant="secondary"
-        icon={<Sparkles size={18} color={colors.ink} />}
-        disabled={busy}
-        onPress={submitGoogle}
-      />
-    ) : null;
+  const socialButtons = (
+    <View style={{ gap: spacing.sm }}>
+      {Platform.OS === "ios" ? (
+        <Button
+          label="Continue with Apple"
+          variant="secondary"
+          icon={<AppleIcon size={18} color={colors.ink} />}
+          disabled={busy}
+          onPress={submitApple}
+        />
+      ) : null}
+      {Platform.OS === "android" || Platform.OS === "ios" ? (
+        <Button
+          label="Continue with Google"
+          variant="secondary"
+          icon={<GoogleIcon size={18} />}
+          disabled={busy}
+          onPress={submitGoogle}
+        />
+      ) : null}
+    </View>
+  );
 
   return (
-    <Screen title="Just Choose" subtitle="Sign up fast. No phone number needed.">
-      <Card>
+    <Screen>
+      <View style={{ alignItems: "center", marginBottom: -24, marginTop: spacing.xl, zIndex: 10 }}>
+        <Image source={brandIcon} style={{ height: 96, width: 96, resizeMode: "contain", borderRadius: 16 }} />
+      </View>
+      <Card
+        style={{
+          borderWidth: 2,
+          shadowOffset: { width: 0, height: 4 },
+          shadowOpacity: 0.08,
+          shadowRadius: 12,
+          elevation: 3,
+          borderRadius: 24,
+          padding: 20,
+          width: "92%",
+          maxWidth: 400,
+          alignSelf: "center",
+        }}
+      >
         <View style={uiStyles.brandRow}>
-          <Image source={brandIcon} style={uiStyles.brandIcon} />
           <View style={uiStyles.brandText}>
-            <Text style={[typography.h2, { color: colors.ink }]}>Stop overthinking</Text>
-            <Text style={uiStyles.small}>Create an account, add the basics, then start choosing.</Text>
+            <Text style={[typography.h2, { color: colors.ink }]}>Someone's got to choose.</Text>
+            <Text style={uiStyles.small}>Create an account, pair up, then send your first choice.</Text>
           </View>
         </View>
-        {platformButton}
-        <View style={uiStyles.dividerRow}>
-          <View style={uiStyles.dividerLine} />
-          <Text style={uiStyles.small}>or</Text>
-          <View style={uiStyles.dividerLine} />
-        </View>
-        <TextField
-          label="Email"
-          value={email}
-          onChangeText={setEmail}
-          keyboardType="email-address"
-          placeholder="you@example.com"
-        />
-        <TextField
-          label="Password"
-          value={password}
-          onChangeText={setPassword}
-          secureTextEntry
-          placeholder="Minimum 6 characters"
-        />
-        <Button
-          label={busy ? (mode === "signup" ? "Creating..." : "Signing in...") : mode === "signup" ? "Sign up with email" : "Sign in"}
-          icon={<Mail size={18} color="#fff" />}
-          disabled={busy || !email.trim() || password.length < 6}
-          onPress={submitEmail}
-        />
-        <Pressable
-          accessibilityRole="button"
-          disabled={busy}
-          onPress={() => setMode(mode === "signup" ? "signin" : "signup")}
-          style={({ pressed }) => [uiStyles.textButton, pressed && { opacity: 0.7 }]}
-        >
-          <Text style={uiStyles.textButtonLabel}>
-            {mode === "signup" ? "I already have an account" : "Create a new account"}
-          </Text>
-        </Pressable>
+        {socialButtons}
+        {!showEmailForm ? (
+          <Pressable
+            accessibilityRole="button"
+            onPress={() => setShowEmailForm(true)}
+            style={({ pressed }) => [{ alignItems: "center", paddingVertical: spacing.sm }, pressed && { opacity: 0.7 }]}
+          >
+            <Text style={{ color: colors.ink, fontSize: 16, fontWeight: "700" }}>Use email instead →</Text>
+          </Pressable>
+        ) : (
+          <>
+            <View style={uiStyles.dividerRow}>
+              <View style={uiStyles.dividerLine} />
+              <Text style={uiStyles.small}>or</Text>
+              <View style={uiStyles.dividerLine} />
+            </View>
+            <TextField
+              label="Email"
+              value={email}
+              onChangeText={setEmail}
+              keyboardType="email-address"
+              placeholder="you@example.com"
+            />
+            <TextField
+              label="Password"
+              value={password}
+              onChangeText={setPassword}
+              secureTextEntry
+              placeholder="Minimum 6 characters"
+            />
+            <Button
+              label={busy ? (mode === "signup" ? "Creating..." : "Signing in...") : mode === "signup" ? "Sign up with email" : "Sign in"}
+              icon={<Mail size={18} color="#fff" />}
+              disabled={busy || !email.trim() || password.length < 6}
+              onPress={submitEmail}
+            />
+          </>
+        )}
       </Card>
+      
+      <Pressable
+        accessibilityRole="button"
+        disabled={busy}
+        onPress={() => setMode(mode === "signup" ? "signin" : "signup")}
+        style={({ pressed }) => [{ alignSelf: "center", marginTop: spacing.md }, pressed && { opacity: 0.7 }]}
+      >
+        <Text style={{ color: colors.muted, fontSize: 14, fontWeight: "600" }}>
+          {mode === "signup" ? "Already have an account? " : "New here? "}
+          <Text style={{ color: colors.ink, fontWeight: "900" }}>
+            {mode === "signup" ? "Sign in" : "Create an account"}
+          </Text>
+        </Text>
+      </Pressable>
     </Screen>
   );
 }
@@ -334,7 +411,20 @@ export function CheckEmailScreen({ navigation, route }: Props<"CheckEmail">) {
 
   return (
     <Screen title="Check your email" subtitle="Your account is created. Confirm it once, then sign in.">
-      <Card>
+      <Card
+        style={{
+          borderWidth: 2,
+          shadowOffset: { width: 0, height: 4 },
+          shadowOpacity: 0.08,
+          shadowRadius: 12,
+          elevation: 3,
+          borderRadius: 24,
+          padding: 20,
+          width: "92%",
+          maxWidth: 400,
+          alignSelf: "center",
+        }}
+      >
         <View style={uiStyles.brandRow}>
           <Image source={brandIcon} style={uiStyles.brandIcon} />
           <View style={uiStyles.brandText}>
@@ -391,7 +481,20 @@ export function CreateProfileScreen({ navigation }: Props<"CreateProfile">) {
 
   return (
     <Screen title="What's your name?" subtitle="Three tiny details, then you are in.">
-      <Card>
+      <Card
+        style={{
+          borderWidth: 2,
+          shadowOffset: { width: 0, height: 4 },
+          shadowOpacity: 0.08,
+          shadowRadius: 12,
+          elevation: 3,
+          borderRadius: 24,
+          padding: 20,
+          width: "92%",
+          maxWidth: 400,
+          alignSelf: "center",
+        }}
+      >
         <TextField
           label="Display name"
           value={displayName}
@@ -513,7 +616,6 @@ export function ConnectionInviteScreen({ navigation }: Props<"ConnectionInvite">
         {remoteStatus === "loading" ? <Text style={uiStyles.small}>{inviteCode ? "Refreshing..." : "Creating invite..."}</Text> : null}
         {remoteError ? <Text style={uiStyles.small}>{remoteError}</Text> : null}
       </Card>
-      {connection ? <PremiumStatusCard connection={connection} /> : null}
       {connectedProfile ? (
         <Button label="Let's choose" onPress={() => navigation.replace("Home")} />
       ) : null}
@@ -666,12 +768,17 @@ export function HomeScreen({ navigation }: Props<"Home">) {
   const refreshRemoteState = useAppStore((state) => state.refreshRemoteState);
   const registerCurrentDeviceForPush = useAppStore((state) => state.registerCurrentDeviceForPush);
   const signOut = useAppStore((state) => state.signOut);
+  const deleteRemoteDecision = useAppStore((state) => state.deleteRemoteDecision);
   const remoteStatus = useAppStore((state) => state.remoteStatus);
   const remoteError = useAppStore((state) => state.remoteError);
-  const pending = decisions.filter((decision) => decision.status === "pending");
-  const answered = decisions.filter((decision) => decision.status === "answered");
+  const needsYourPick = decisions.filter((decision) => isOpenDecision(decision) && decision.assignedTo === profile?.id);
+  const waitingOnThem = decisions.filter((decision) => isOpenDecision(decision) && decision.createdBy === profile?.id && decision.assignedTo !== profile?.id);
+  const latestAnswer = decisions
+    .filter((decision) => getDecisionStatus(decision) === "answered")
+    .sort((a, b) => getDecisionTime(b) - getDecisionTime(a))[0];
   const { colors } = useTheme();
   const uiStyles = useStyles();
+  const activePickCount = needsYourPick.length;
 
   useEffect(() => {
     if (profile && connection && connectedProfile) {
@@ -701,9 +808,9 @@ export function HomeScreen({ navigation }: Props<"Home">) {
       refreshing={remoteStatus === "loading"}
       footer={<FloatingTabBar active="home" navigation={navigation} />}
     >
-      <ScreenHeader title={`Hi ${profile.displayName}`} />
-      <Text style={uiStyles.subtitle}>
-        {connectedProfile ? "Make the tiny debate someone else's problem." : "Make the question now. Connect when you're ready to send it."}
+      <ScreenHeader title={`HI ${profile.displayName.toUpperCase()}`} />
+      <Text style={[uiStyles.subtitle, { alignSelf: "flex-start", textAlign: "left" }]}>
+        You've got {activePickCount} {activePickCount === 1 ? "pick" : "picks"} to make
       </Text>
       {connection ? null : (
         <Card>
@@ -715,37 +822,287 @@ export function HomeScreen({ navigation }: Props<"Home">) {
       )}
       {remoteError ? <Text style={uiStyles.small}>{remoteError}</Text> : null}
 
-      <SectionHeader title="Waiting" count={pending.length} />
-      {pending.length === 0 ? (
-        <EmptyState title="Nothing waiting" body="No choices waiting for you. Start a tiny debate and make it official." />
+      <SectionHeader title="Needs your pick" count={needsYourPick.length} />
+      {needsYourPick.length === 0 ? (
+        <EmptyState title="Nothing needs you" body="When someone sends you a choice, it will land here first." />
       ) : (
-        pending.map((decision) => {
-          const isAssignee = profile?.id === decision.assignedTo;
-          return (
-            <DecisionCard
-              key={decision.id}
-              decision={decision}
-              onPress={() => {
-                if (isAssignee) {
-                  navigation.navigate("AnswerDecision", { decisionId: decision.id });
-                } else {
-                  navigation.navigate("DecisionDetail", { decisionId: decision.id });
-                }
-              }}
-            />
-          );
-        })
+        needsYourPick.map((decision) => (
+          <HomePickCard
+            key={decision.id}
+            decision={decision}
+            fromName={connectedProfile?.displayName ?? "Them"}
+            onPress={() => navigation.navigate("AnswerDecision", { decisionId: decision.id })}
+          />
+        ))
       )}
 
-      <SectionHeader title="Answered" count={answered.length} />
-      {answered.slice(0, 3).map((decision) => (
-        <DecisionCard
-          key={decision.id}
-          decision={decision}
-          onPress={() => navigation.navigate("DecisionResult", { decisionId: decision.id })}
-        />
-      ))}
+      <SectionHeader title="Waiting on them" count={waitingOnThem.length} />
+      {waitingOnThem.length === 0 ? (
+        <EmptyState title="No waiting picks" body="Questions you send will wait here until they choose." />
+      ) : (
+        waitingOnThem.map((decision) => (
+          <HomeWaitingCard
+            key={decision.id}
+            decision={decision}
+            assigneeName={connectedProfile?.displayName ?? "them"}
+            onPress={() => navigation.navigate("DecisionDetail", { decisionId: decision.id })}
+            onCancel={async () => {
+              try {
+                await deleteRemoteDecision(decision.id);
+              } catch (error) {
+                Alert.alert("Error", error instanceof Error ? error.message : "Unable to cancel choice.");
+              }
+            }}
+          />
+        ))
+      )}
+
+      {latestAnswer ? (
+        <>
+          <SectionHeader title="Latest answer" count={1} />
+          <LatestAnswerCard
+            decision={latestAnswer}
+            profileId={profile.id}
+            connectedProfileName={connectedProfile?.displayName ?? "They"}
+            onPress={() => navigation.navigate("DecisionResult", { decisionId: latestAnswer.id })}
+            onHistoryPress={() => navigation.navigate("History")}
+          />
+        </>
+      ) : null}
     </Screen>
+  );
+}
+
+type HistoryFilter = "All" | "Mine" | "Theirs" | "Cancelled";
+type ExtendedDecisionStatus = Decision["status"] | "cancelled" | "expired";
+
+function getDecisionStatus(decision: Decision): ExtendedDecisionStatus {
+  return decision.status as ExtendedDecisionStatus;
+}
+
+function isOpenDecision(decision: Decision) {
+  return getDecisionStatus(decision) === "pending";
+}
+
+function isHistoryDecision(decision: Decision) {
+  const status = getDecisionStatus(decision);
+  return status === "answered" || status === "cancelled" || status === "expired";
+}
+
+function isCancelledDecision(decision: Decision) {
+  const status = getDecisionStatus(decision);
+  return status === "cancelled" || status === "expired";
+}
+
+function getSelectedOption(decision: Decision) {
+  return decision.response?.selectedOptionId
+    ? decision.options.find((option) => option.id === decision.response?.selectedOptionId)
+    : null;
+}
+
+function getDecisionTime(decision: Decision) {
+  return new Date(decision.answeredAt ?? decision.updatedAt ?? decision.createdAt).getTime();
+}
+
+function HomePickCard({
+  decision,
+  fromName,
+  onPress,
+}: {
+  decision: Decision;
+  fromName: string;
+  onPress: () => void;
+}) {
+  const { colors } = useTheme();
+  const uiStyles = useStyles();
+
+  return (
+    <Pressable onPress={onPress}>
+      <Card>
+        <View style={{ gap: spacing.md }}>
+          <View style={{ flexDirection: "row", justifyContent: "space-between", gap: spacing.md, alignItems: "flex-start" }}>
+            <Pill tone="coral">YOUR TURN</Pill>
+            <ChevronRight size={24} color={colors.ink} strokeWidth={3} />
+          </View>
+          <Text style={[typography.h2, { color: colors.ink }]}>{decision.title}</Text>
+          <Text style={uiStyles.small}>From {fromName} · {decision.options.length} options</Text>
+          <View style={{ alignItems: "flex-start" }}>
+            <ActionPillButton label="Choose" tone="coral" onPress={onPress} />
+          </View>
+        </View>
+      </Card>
+    </Pressable>
+  );
+}
+
+function HomeWaitingCard({
+  decision,
+  assigneeName,
+  onPress,
+  onCancel,
+}: {
+  decision: Decision;
+  assigneeName: string;
+  onPress: () => void;
+  onCancel: () => void;
+}) {
+  const { colors } = useTheme();
+  const uiStyles = useStyles();
+  const waitingLabel = `WAITING FOR ${assigneeName.toUpperCase()}`;
+  const [showCancelConfirm, setShowCancelConfirm] = useState(false);
+
+  return (
+    <Pressable onPress={onPress}>
+      <Card>
+        <View style={{ gap: spacing.md }}>
+          <Pill tone="amber">{waitingLabel}</Pill>
+          <Text style={[typography.h2, { color: colors.ink }]}>{decision.title}</Text>
+          <Text style={uiStyles.small}>Sent {timeAgo(decision.createdAt)} · {decision.options.length} options</Text>
+          <View style={{ flexDirection: "row", flexWrap: "wrap", gap: spacing.sm }}>
+            <ActionPillButton 
+              label="Cancel" 
+              onPress={() => setShowCancelConfirm(true)} 
+            />
+          </View>
+        </View>
+      </Card>
+      <CustomAlert 
+        visible={showCancelConfirm}
+        title="Cancel Pick?"
+        message="Are you sure you want to cancel this pick? It will be removed for both of you."
+        cancelText="Keep it"
+        confirmText="Cancel pick"
+        onCancel={() => setShowCancelConfirm(false)}
+        onDelete={() => {
+          setShowCancelConfirm(false);
+          onCancel();
+        }}
+      />
+    </Pressable>
+  );
+}
+
+function LatestAnswerCard({
+  decision,
+  profileId,
+  connectedProfileName,
+  onPress,
+  onHistoryPress,
+}: {
+  decision: Decision;
+  profileId: string;
+  connectedProfileName: string;
+  onPress: () => void;
+  onHistoryPress: () => void;
+}) {
+  const selected = getSelectedOption(decision);
+  const responderName = decision.response?.responderId === profileId ? "You" : connectedProfileName;
+  const uiStyles = useStyles();
+  const { colors } = useTheme();
+
+  return (
+    <Pressable onPress={onPress}>
+      <View
+        style={{
+          backgroundColor: colors.surface,
+          borderColor: colors.ink,
+          borderRadius: 24,
+          borderWidth: 2,
+          gap: spacing.sm,
+          padding: spacing.lg,
+        }}
+      >
+        <Pill tone="green">ANSWERED</Pill>
+        <Text style={[typography.h2, { color: colors.ink, fontSize: 18, lineHeight: 23 }]}>
+          {responderName} chose {selected?.title ?? "an answer"}
+        </Text>
+        <Text style={uiStyles.small} numberOfLines={1}>{decision.title}</Text>
+        <Pressable onPress={onHistoryPress} hitSlop={12}>
+          <Text style={{ color: colors.coral, fontSize: 14, fontWeight: "900" }}>View history →</Text>
+        </Pressable>
+      </View>
+    </Pressable>
+  );
+}
+
+function ActionPillButton({
+  label,
+  onPress,
+  tone = "neutral",
+}: {
+  label: string;
+  onPress: () => void;
+  tone?: "neutral" | "coral";
+}) {
+  const { colors } = useTheme();
+  return (
+    <Pressable
+      accessibilityRole="button"
+      accessibilityLabel={label}
+      onPress={onPress}
+      style={({ pressed }) => [
+        {
+          backgroundColor: tone === "coral" ? colors.coral : colors.surface,
+          borderColor: colors.ink,
+          borderRadius: 999,
+          borderWidth: 2,
+          paddingHorizontal: spacing.lg,
+          paddingVertical: spacing.sm,
+        },
+        pressed && { opacity: 0.8 },
+      ]}
+    >
+      <Text style={{ color: tone === "coral" ? "#FFFFFF" : colors.ink, fontSize: 13, fontWeight: "900", textTransform: "uppercase" }}>
+        {label}
+      </Text>
+    </Pressable>
+  );
+}
+
+function CustomAlert({ visible, title, message, onCancel, onDelete, confirmText = "Delete", cancelText = "Cancel" }: { visible: boolean, title: string, message: string, onCancel: () => void, onDelete: () => void, confirmText?: string, cancelText?: string }) {
+  const { colors } = useTheme();
+  
+  return (
+    <Modal visible={visible} transparent animationType="fade" onRequestClose={onCancel}>
+      <View style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'center', alignItems: 'center', padding: 24 }}>
+        <View style={{ 
+          backgroundColor: colors.background, 
+          borderRadius: 28, 
+          padding: 24, 
+          width: '100%',
+          maxWidth: 340,
+          borderWidth: 2,
+          borderColor: colors.border,
+          shadowColor: colors.ink,
+          shadowOffset: { width: 0, height: 8 },
+          shadowOpacity: 0.15,
+          shadowRadius: 12,
+          elevation: 10
+        }}>
+          <Text style={{ fontSize: 22, fontWeight: '900', color: colors.ink, marginBottom: 8, textAlign: 'center' }}>{title}</Text>
+          <Text style={{ fontSize: 16, fontWeight: '600', color: colors.muted, marginBottom: 24, textAlign: 'center', lineHeight: 22 }}>{message}</Text>
+          
+          <View style={{ flexDirection: 'row', gap: 12 }}>
+            <Pressable 
+              onPress={onCancel} 
+              style={{ flex: 1, backgroundColor: colors.surfaceMuted, paddingVertical: 14, borderRadius: 999, alignItems: 'center' }}
+            >
+              <Text style={{ color: colors.ink, fontSize: 16, fontWeight: '800' }}>{cancelText}</Text>
+            </Pressable>
+            
+            <Pressable 
+              onPress={() => {
+                onCancel();
+                setTimeout(onDelete, 100);
+              }} 
+              style={{ flex: 1, backgroundColor: colors.danger, paddingVertical: 14, borderRadius: 999, alignItems: 'center' }}
+            >
+              <Text style={{ color: '#FFFFFF', fontSize: 16, fontWeight: '800' }}>{confirmText}</Text>
+            </Pressable>
+          </View>
+        </View>
+      </View>
+    </Modal>
   );
 }
 
@@ -757,94 +1114,72 @@ export function HistoryScreen({ navigation }: Props<"History">) {
   const remoteStatus = useAppStore((state) => state.remoteStatus);
   const remoteError = useAppStore((state) => state.remoteError);
   const [dismissed, setDismissed] = useState<Set<string>>(new Set());
+  const [activeFilter, setActiveFilter] = useState<HistoryFilter>("All");
+  const [itemToDelete, setItemToDelete] = useState<string | null>(null);
   const uiStyles = useStyles();
   const histStyles = useHistoryStyles();
+  const { colors } = useTheme();
 
-  const visible = decisions.filter((d) => !dismissed.has(d.id));
+  let visible = decisions.filter((decision) => isHistoryDecision(decision) && !dismissed.has(decision.id));
+
+  if (activeFilter === "Mine") {
+    visible = visible.filter((decision) => decision.response?.responderId === profile?.id);
+  } else if (activeFilter === "Theirs") {
+    visible = visible.filter((decision) => decision.response?.responderId && decision.response.responderId !== profile?.id);
+  } else if (activeFilter === "Cancelled") {
+    visible = visible.filter(isCancelledDecision);
+  }
 
   function dismiss(id: string) {
     setDismissed((prev) => new Set(prev).add(id));
   }
 
-  function activityText(decision: Decision): React.ReactNode {
-    const isCreator = profile?.id === decision.createdBy;
-    const connectedProfileName = connectedProfile?.displayName ?? "Your connection";
-    const selectedOption = decision.response?.selectedOptionId
-      ? decision.options.find((o) => o.id === decision.response?.selectedOptionId)
-      : null;
+  function activityContent(decision: Decision): { text: React.ReactNode; statusPill: React.ReactNode; selectedTitle: string } {
+    const status = getDecisionStatus(decision);
+    const connectedProfileName = connectedProfile?.displayName ?? "Bob";
+    const selectedOption = getSelectedOption(decision);
+    const selectedTitle = selectedOption?.title ?? selectedOption?.label ?? "an answer";
 
-    if (decision.status === "answered" && selectedOption) {
-      if (isCreator) {
-        // The connected person chose.
-        return (
-          <Text style={histStyles.activityText}>
-            <Text style={histStyles.nameHighlight}>{connectedProfileName}</Text>
-            {" chose '"}
-            <Text style={histStyles.nameHighlight}>{selectedOption.title || selectedOption.label}</Text>
-            {"'"}
-          </Text>
-        );
-      }
-      // You chose
-      return (
+    let text: React.ReactNode;
+    let statusPill: React.ReactNode;
+
+    if (status === "answered") {
+      const responderName = decision.response?.responderId === profile?.id ? "You" : connectedProfileName;
+      statusPill = <Pill tone="green">Answered</Pill>;
+      text = (
         <Text style={histStyles.activityText}>
-          <Text style={histStyles.nameHighlight}>You</Text>
-          {" chose '"}
-          <Text style={histStyles.nameHighlight}>{selectedOption.title || selectedOption.label}</Text>
-          {"'"}
+          <Text style={histStyles.nameHighlight}>{responderName}</Text> chose {selectedTitle}
+        </Text>
+      );
+    } else {
+      const label = status === "expired" ? "Expired" : "Cancelled";
+      statusPill = <Pill tone="amber">{label}</Pill>;
+      text = (
+        <Text style={histStyles.activityText}>
+          <Text style={histStyles.nameHighlight}>You</Text> {status === "expired" ? "let expire" : "cancelled"} {decision.title}
         </Text>
       );
     }
 
-    if (decision.status === "pending") {
-      if (isCreator) {
-        return (
-          <Text style={histStyles.activityText}>
-            <Text style={histStyles.nameHighlight}>You</Text>
-            {" are asking "}
-            <Text style={histStyles.nameHighlight}>{connectedProfileName}</Text>
-            {` '${decision.title}'`}
-          </Text>
-        );
-      }
-      return (
-        <Text style={histStyles.activityText}>
-          <Text style={histStyles.nameHighlight}>{connectedProfileName}</Text>
-          {` asked '${decision.title}'`}
-        </Text>
-      );
-    }
-
-    // Answered without a specific option pick
-    if (isCreator) {
-      return (
-        <Text style={histStyles.activityText}>
-          <Text style={histStyles.nameHighlight}>You</Text>
-          {" asked "}
-          <Text style={histStyles.nameHighlight}>{connectedProfileName}</Text>
-          {` '${decision.title}'`}
-        </Text>
-      );
-    }
-    return (
-      <Text style={histStyles.activityText}>
-        <Text style={histStyles.nameHighlight}>{connectedProfileName}</Text>
-        {` asked '${decision.title}'`}
-      </Text>
-    );
+    return { text, statusPill, selectedTitle };
   }
 
   const thumbnails = (decision: Decision) => {
     const images = decision.options.filter((o) => o.imageUrl).slice(0, 3);
     if (images.length === 0) return null;
     return (
-      <View style={histStyles.thumbRow}>
-        {images.map((o) => (
-          <Image key={o.id} source={{ uri: o.imageUrl! }} style={histStyles.thumb} />
-        ))}
+      <View style={histStyles.thumbContainer}>
+        <View style={histStyles.thumbRow}>
+          {images.map((o) => (
+            <Image key={o.id} source={{ uri: o.imageUrl! }} style={histStyles.thumb} />
+          ))}
+        </View>
+        <Text style={histStyles.thumbLabel}>{decision.options.length} options</Text>
       </View>
     );
   };
+
+  const filters: HistoryFilter[] = ["All", "Mine", "Theirs", "Cancelled"];
 
   return (
     <Screen
@@ -852,62 +1187,119 @@ export function HistoryScreen({ navigation }: Props<"History">) {
       refreshing={remoteStatus === "loading"}
       footer={<FloatingTabBar active="history" navigation={navigation} />}
     >
-      <ScreenHeader title="Recent" />
+      <ScreenHeader title="HISTORY" />
+      <Text style={[uiStyles.small, { marginBottom: 4 }]}>Past choices and replies.</Text>
+
+      <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={histStyles.filterRow}>
+        {filters.map((f) => (
+          <Pressable
+            key={f}
+            onPress={() => setActiveFilter(f)}
+            style={[histStyles.filterChip, activeFilter === f && histStyles.filterChipActive]}
+          >
+            <Text style={[histStyles.filterText, activeFilter === f && histStyles.filterTextActive]}>{f}</Text>
+          </Pressable>
+        ))}
+      </ScrollView>
 
       {remoteError ? <Text style={uiStyles.small}>{remoteError}</Text> : null}
 
       {visible.length === 0 ? (
-        <EmptyState title="Nothing here yet" body="Your choices and answers will appear here." />
+        <EmptyState title="Nothing finished yet" body="Completed, cancelled, and expired choices will appear here." />
       ) : (
-        visible.map((decision) => (
-          <Pressable
-            key={decision.id}
-            onPress={() => {
-              if (decision.status === "answered") {
-                navigation.navigate("DecisionResult", { decisionId: decision.id });
-              } else if (profile?.id === decision.assignedTo) {
-                navigation.navigate("AnswerDecision", { decisionId: decision.id });
-              } else {
-                navigation.navigate("DecisionDetail", { decisionId: decision.id });
-              }
-            }}
-          >
-            <ActivityCard>
-              {/* Dismiss X */}
+        visible.map((decision) => {
+          const { text, statusPill } = activityContent(decision);
+          const status = getDecisionStatus(decision);
+
+          return (
+            <View key={decision.id} style={{ marginVertical: 4 }}>
               <Pressable
-                accessibilityRole="button"
-                accessibilityLabel="Dismiss"
-                onPress={() => dismiss(decision.id)}
-                style={histStyles.dismissBtn}
+                onPress={() => {
+                  if (status === "answered") {
+                    navigation.navigate("DecisionResult", { decisionId: decision.id });
+                  } else {
+                    navigation.navigate("DecisionDetail", { decisionId: decision.id });
+                  }
+                }}
+                style={({ pressed }) => [histStyles.receiptCard, pressed && { opacity: 0.85 }]}
               >
-                <X size={16} color="#FFFFFF" strokeWidth={2.6} />
+                <View style={histStyles.activityRow}>
+                  {text}
+                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
+                    <Text style={histStyles.timestamp}>{timeAgo(decision.updatedAt ?? decision.createdAt)}</Text>
+                    <Pressable 
+                      hitSlop={12} 
+                      onPress={() => setItemToDelete(decision.id)}
+                    >
+                      <MoreHorizontal size={20} color={colors.muted} />
+                    </Pressable>
+                  </View>
+                </View>
+
+                <Text style={histStyles.decisionTitle} numberOfLines={2}>
+                  {decision.title}
+                </Text>
+
+                {thumbnails(decision)}
+
+                <View style={{ marginTop: 8 }}>
+                  {statusPill}
+                </View>
               </Pressable>
-
-              {/* Activity description */}
-              {activityText(decision)}
-
-              {/* Image thumbnails */}
-              {thumbnails(decision)}
-
-              {/* Timestamp */}
-              <Text style={histStyles.timestamp}>{timeAgo(decision.updatedAt ?? decision.createdAt)}</Text>
-            </ActivityCard>
-          </Pressable>
-        ))
+            </View>
+          );
+        })
       )}
 
       {!profile ? <Button label="Sign in" onPress={() => navigation.replace("Auth")} /> : null}
+
+      <CustomAlert 
+        visible={itemToDelete !== null} 
+        title="Delete Item" 
+        message="Are you sure you want to remove this from your history?" 
+        onCancel={() => setItemToDelete(null)}
+        onDelete={() => {
+          if (itemToDelete) {
+            dismiss(itemToDelete);
+            setItemToDelete(null);
+          }
+        }}
+      />
     </Screen>
   );
 }
 
 export function SavedScreen({ navigation }: Props<"Saved">) {
+  const profile = useAppStore((state) => state.profile);
+  const decisions = useAppStore((state) => state.decisions);
+  const savedDecisionIds = useAppStore((state) => state.savedDecisionIds);
+  const savedDecisions = decisions.filter(d => savedDecisionIds.includes(d.id));
+
   return (
-    <Screen
-      footer={<FloatingTabBar active="saved" navigation={navigation} />}
-    >
+    <Screen footer={<FloatingTabBar active="saved" navigation={navigation} />}>
       <ScreenHeader title="Saved" />
-      <EmptyState title="Nothing saved yet" body="Bookmark your favourite choices and they'll show up here." />
+      {savedDecisions.length === 0 ? (
+        <EmptyState title="Nothing saved yet" body="Bookmark your favourite choices and they'll show up here." />
+      ) : (
+        savedDecisions.map((decision) => {
+          const isAssignee = profile?.id === decision.assignedTo;
+          return (
+            <DecisionCard
+              key={decision.id}
+              decision={decision}
+              onPress={() => {
+                if (decision.status === "answered") {
+                  navigation.navigate("DecisionResult", { decisionId: decision.id });
+                } else if (isAssignee) {
+                  navigation.navigate("AnswerDecision", { decisionId: decision.id });
+                } else {
+                  navigation.navigate("DecisionDetail", { decisionId: decision.id });
+                }
+              }}
+            />
+          );
+        })
+      )}
     </Screen>
   );
 }
@@ -917,12 +1309,12 @@ export function CreateDecisionScreen({ navigation }: Props<"CreateDecision">) {
   const connectedProfile = useAppStore((state) => state.connectedProfile);
   const connection = useAppStore((state) => state.connection);
   const createRemoteDecision = useAppStore((state) => state.createRemoteDecision);
-  const [note, setNote] = useState("");
+  const note = useAppStore((state) => state.draftNote);
+  const setNote = useAppStore((state) => state.setDraftNote);
+  const options = useAppStore((state) => state.draftOptions);
+  const setOptions = useAppStore((state) => state.setDraftOptions);
+  const clearDraft = useAppStore((state) => state.clearDraft);
   const [showNote, setShowNote] = useState(false);
-  const [options, setOptions] = useState([
-    { title: "", imageUrl: null as string | null },
-    { title: "", imageUrl: null as string | null },
-  ]);
   const [busy, setBusy] = useState(false);
   const { colors } = useTheme();
   const uiStyles = useStyles();
@@ -936,17 +1328,19 @@ export function CreateDecisionScreen({ navigation }: Props<"CreateDecision">) {
   }
 
   async function addImage(index: number) {
-    const picked = await pickDecisionImage();
+    const picked = await chooseDecisionImage();
     if (!picked) {
       return;
     }
 
     try {
-      const uri = profile ? await uploadDecisionImage(profile.id, picked) : picked;
-      updateOption(index, { imageUrl: uri });
+      const uploaded = profile
+        ? await uploadDecisionImage(profile.id, picked)
+        : { imageUrl: picked, imagePath: null };
+      updateOption(index, uploaded);
     } catch (error) {
       Alert.alert("Image upload issue", error instanceof Error ? error.message : "Try again.");
-      updateOption(index, { imageUrl: picked });
+      updateOption(index, { imageUrl: picked, imagePath: null });
     }
   }
 
@@ -973,11 +1367,6 @@ export function CreateDecisionScreen({ navigation }: Props<"CreateDecision">) {
       return;
     }
 
-    if (!connection.premiumEnabled) {
-      Alert.alert("Premium needed", "One active connection subscription unlocks choices for both connected people.");
-      return;
-    }
-
     setBusy(true);
     try {
       const decision = await createRemoteDecision({
@@ -986,8 +1375,10 @@ export function CreateDecisionScreen({ navigation }: Props<"CreateDecision">) {
           label: String.fromCharCode(65 + index),
           title: option.title?.trim() || null,
           imageUrl: option.imageUrl ?? null,
+          imagePath: option.imagePath ?? null,
         })),
       });
+      clearDraft();
       navigation.replace("DecisionDetail", { decisionId: decision.id });
     } catch (error) {
       Alert.alert("Choice issue", error instanceof Error ? error.message : "Try again.");
@@ -1011,7 +1402,7 @@ export function CreateDecisionScreen({ navigation }: Props<"CreateDecision">) {
         onRemoveOption={(index) => setOptions((current) => current.filter((_, itemIndex) => itemIndex !== index))}
         canRemove={options.length > 2}
         canAdd={options.length < 6}
-        onAddOption={() => setOptions((current) => [...current, { title: "", imageUrl: null }])}
+        onAddOption={() => setOptions((current) => [...current, { title: "", imageUrl: null, imagePath: null }])}
       />
 
       <Button label={busy ? "LAUNCHING..." : "JUST CHOOSE"} disabled={busy} onPress={submit} />
@@ -1023,40 +1414,50 @@ export function DecisionDetailScreen({ route, navigation }: Props<"DecisionDetai
   const decision = useDecision(route.params.decisionId);
   const profile = useAppStore((state) => state.profile);
   const connectedProfile = useAppStore((state) => state.connectedProfile);
+  const savedDecisionIds = useAppStore((state) => state.savedDecisionIds);
+  const toggleSavedDecision = useAppStore((state) => state.toggleSavedDecision);
   const { colors } = useTheme();
 
   if (!decision) {
     return <MissingDecisionScreen navigation={navigation} />;
   }
 
+  const isSaved = savedDecisionIds.includes(decision.id);
+
   const canAnswer = profile?.id === decision.assignedTo && decision.status === "pending";
   const isCreator = profile?.id === decision.createdBy;
 
   return (
-    <Screen title={decision.title} subtitle={decision.status === "answered" ? "Answered" : "Waiting for an answer"}>
-      {decision.note ? (
-        <Card>
-          <Text style={[typography.body, { color: colors.ink }]}>{decision.note}</Text>
-        </Card>
-      ) : null}
-      {decision.options.map((option) => (
-        <OptionPreview
-          key={option.id}
-          title={option.title || option.label}
-          imageUrl={option.imageUrl}
-        />
-      ))}
-      {decision.status === "answered" ? (
-        <Button label="Show the verdict" onPress={() => navigation.navigate("DecisionResult", { decisionId: decision.id })} />
-      ) : canAnswer ? (
-        <Button label="Just choose" onPress={() => navigation.navigate("AnswerDecision", { decisionId: decision.id })} />
-      ) : isCreator ? (
-        <Card>
-          <Text style={[typography.body, { color: colors.ink }]}>
-            Sent to {connectedProfile?.displayName ?? "your connection"}. They need to choose.
-          </Text>
-        </Card>
-      ) : null}
+    <Screen 
+      footer={
+        decision.status === "answered" ? (
+          <Button label="Show the verdict" onPress={() => navigation.navigate("DecisionResult", { decisionId: decision.id })} />
+        ) : canAnswer ? (
+          <Button label="Just choose" onPress={() => navigation.navigate("AnswerDecision", { decisionId: decision.id })} />
+        ) : isCreator ? (
+          <Pill tone="amber" style={{ alignSelf: "center", marginVertical: 16 }}>
+            Waiting for {connectedProfile?.displayName ?? "connection"}
+          </Pill>
+        ) : null
+      }
+    >
+      <View style={{ alignItems: "flex-end", minHeight: 32 }}>
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel={isSaved ? "Remove from saved" : "Save choice"}
+          onPress={() => toggleSavedDecision(decision.id)}
+          hitSlop={16}
+          style={({ pressed }) => [pressed && { opacity: 0.75 }]}
+        >
+          <Bookmark size={30} color={isSaved ? colors.coral : colors.ink} fill={isSaved ? colors.coral : "transparent"} strokeWidth={3} />
+        </Pressable>
+      </View>
+      <QuestionArea question={decision.note || decision.title} />
+      {decision.options.length >= 5 ? (
+        <DecisionCarousel options={decision.options} viewOnly={true} />
+      ) : (
+        <DecisionGrid options={decision.options} viewOnly={true} />
+      )}
     </Screen>
   );
 }
@@ -1065,45 +1466,55 @@ export function AnswerDecisionScreen({ route, navigation }: Props<"AnswerDecisio
   const decision = useDecision(route.params.decisionId);
   const answerRemoteDecision = useAppStore((state) => state.answerRemoteDecision);
   const remoteStatus = useAppStore((state) => state.remoteStatus);
-  const [selectedOptionId, setSelectedOptionId] = useState<string | null>(null);
   const [comment, setComment] = useState("");
   const { colors } = useTheme();
+  const uiStyles = useStyles();
+  const [activeId, setActiveId] = useState<string | null>(null);
 
   if (!decision) {
     return <MissingDecisionScreen navigation={navigation} />;
   }
   const currentDecision = decision;
 
-  async function submit(responseType: ResponseType, optionId = selectedOptionId) {
+  async function submit() {
+    if (!activeId) return;
+    const option = currentDecision.options.find(o => o.id === activeId);
+    if (!option) return;
     await answerRemoteDecision(currentDecision.id, {
-      responseType,
-      selectedOptionId: optionId,
+      responseType: "selected_option" as ResponseType,
+      selectedOptionId: option.id,
       comment,
     });
     navigation.replace("DecisionResult", { decisionId: currentDecision.id });
   }
 
   return (
-    <Screen title="Just choose" subtitle={currentDecision.note ?? undefined}>
-      {currentDecision.options.map((option) => {
-        const selected = selectedOptionId === option.id;
-        return (
-          <Pressable key={option.id} onPress={() => setSelectedOptionId(option.id)}>
-            <View style={[selected && { borderColor: colors.coral, borderWidth: 4, borderRadius: 34 }]}>
-              <OptionPreview
-                title={option.title || option.label}
-                imageUrl={option.imageUrl}
-              />
-            </View>
-          </Pressable>
-        );
-      })}
-      <TextField label="Comment" value={comment} onChangeText={setComment} multiline placeholder="Optional" />
-      <Button
-        label={remoteStatus === "loading" ? "Choosing..." : "Just choose"}
-        disabled={!selectedOptionId || remoteStatus === "loading"}
-        onPress={() => submit("selected_option")}
-      />
+    <Screen 
+      footer={
+        <View style={{ gap: 16 }}>
+          <TextField label="Comment" value={comment} onChangeText={setComment} multiline placeholder="Optional" />
+          <Button
+            label={remoteStatus === "loading" ? "SUBMITTING..." : "JUST CHOOSE"}
+            onPress={submit}
+            disabled={!activeId || remoteStatus === "loading"}
+          />
+        </View>
+      }
+    >
+      <QuestionArea question={currentDecision.note || currentDecision.title || "JUST CHOOSE"} />
+      {currentDecision.options.length >= 5 ? (
+        <DecisionCarousel 
+          options={currentDecision.options} 
+          activeId={activeId} 
+          onOptionSelect={setActiveId} 
+        />
+      ) : (
+        <DecisionGrid 
+          options={currentDecision.options} 
+          activeId={activeId} 
+          onOptionSelect={setActiveId} 
+        />
+      )}
     </Screen>
   );
 }
@@ -1112,6 +1523,8 @@ export function DecisionResultScreen({ route, navigation }: Props<"DecisionResul
   const decision = useDecision(route.params.decisionId);
   const uiStyles = useStyles();
   const { colors } = useTheme();
+  const savedDecisionIds = useAppStore((state) => state.savedDecisionIds);
+  const toggleSavedDecision = useAppStore((state) => state.toggleSavedDecision);
 
   const phrase = useMemo(() => {
     const phrases = [
@@ -1130,27 +1543,38 @@ export function DecisionResultScreen({ route, navigation }: Props<"DecisionResul
 
   const response = decision.response;
   const selected = decision.options.find((option) => option.id === response?.selectedOptionId);
+  const isSaved = savedDecisionIds.includes(decision.id);
 
   return (
-    <Screen title="Result" subtitle={response ? phrase : decision.title}>
+    <Screen 
+      title="Result" 
+      subtitle={response ? phrase : decision.title}
+      headerRight={
+        <Pressable onPress={() => toggleSavedDecision(decision.id)} hitSlop={16}>
+          <Bookmark size={24} color={isSaved ? colors.coral : colors.ink} fill={isSaved ? colors.coral : "transparent"} strokeWidth={3} />
+        </Pressable>
+      }
+    >
       {!response ? (
         <EmptyState title="No answer yet" body="The choice is still waiting." />
       ) : (
         <AnimatedResultCard>
-          {selected ? (
-            <>
-              {selected.imageUrl ? <Image source={{ uri: selected.imageUrl }} style={{ width: 160, height: 160, borderRadius: 24, borderWidth: 4, borderColor: colors.ink }} /> : null}
-              <Text style={{ fontSize: 32, fontWeight: "900", color: colors.ink, textAlign: "center", textTransform: "uppercase" }}>
-                {selected.title || selected.label}
+          <View style={{ flex: 1, justifyContent: "center", alignItems: "center", width: "100%", gap: spacing.xl }}>
+            {selected ? (
+              <>
+                {selected.imageUrl ? <Image source={{ uri: selected.imageUrl }} style={{ width: 160, height: 160, borderRadius: 24, borderWidth: 4, borderColor: colors.ink }} /> : null}
+                <Text style={{ fontSize: 44, fontWeight: "900", color: colors.ink, textAlign: "center", textTransform: "uppercase" }}>
+                  {selected.title || selected.label}
+                </Text>
+              </>
+            ) : (
+              <Text style={{ fontSize: 44, fontWeight: "900", color: colors.ink, textAlign: "center", textTransform: "uppercase" }}>
+                Could not choose
               </Text>
-            </>
-          ) : (
-            <Text style={{ fontSize: 32, fontWeight: "900", color: colors.ink, textAlign: "center", textTransform: "uppercase" }}>
-              Could not choose
-            </Text>
-          )}
-          {response.comment ? <Text style={[typography.body, { color: colors.ink, textAlign: "center", fontStyle: "italic" }]}>"{response.comment}"</Text> : null}
-          <Text style={{ fontSize: 13, color: colors.muted, textAlign: "center", fontWeight: "700" }}>Answered {new Date(response.createdAt).toLocaleString([], { dateStyle: "short", timeStyle: "short" })}</Text>
+            )}
+            {response.comment ? <Text style={[typography.body, { color: colors.ink, textAlign: "center", fontStyle: "italic" }]}>"{response.comment}"</Text> : null}
+          </View>
+          <Text style={{ fontSize: 13, color: colors.muted, textAlign: "center", fontWeight: "700", opacity: 0.7, marginTop: "auto", paddingTop: spacing.xl }}>Answered {new Date(response.createdAt).toLocaleString([], { dateStyle: "short", timeStyle: "short" })}</Text>
         </AnimatedResultCard>
       )}
       <Button label="Back to chaos" onPress={() => navigation.navigate("Home")} />
@@ -1162,11 +1586,10 @@ export function SettingsScreen({ navigation }: Props<"Settings">) {
   const { colors, themeName } = useTheme();
   const connection = useAppStore((state) => state.connection);
   const signOut = useAppStore((state) => state.signOut);
-  const formattedThemeName = themeName.charAt(0).toUpperCase() + themeName.slice(1);
+  const formattedThemeName = themeName.replace(/([A-Z])/g, ' $1').replace(/^./, str => str.toUpperCase());
   return (
     <Screen footer={<FloatingTabBar active="settings" navigation={navigation} />}>
       <ScreenHeader title="Settings" />
-      {connection ? <PremiumStatusCard connection={connection} /> : null}
       <SettingsRow
         title="App Theme"
         subtitle={formattedThemeName}
@@ -1188,8 +1611,8 @@ export function SettingsScreen({ navigation }: Props<"Settings">) {
       <SettingsRow
         title="Log out"
         subtitle="Sign out of your account"
-        icon={<LogOut size={24} color={colors.coral} strokeWidth={3} />}
-        titleColor={colors.coral}
+        icon={<LogOut size={24} color={colors.danger} strokeWidth={3} />}
+        titleColor={colors.danger}
         onPress={() => {
           Alert.alert(
             "Log out?",
@@ -1219,37 +1642,63 @@ export function SettingsScreen({ navigation }: Props<"Settings">) {
 export function ThemeSelectionScreen({ navigation }: Props<"ThemeSelection">) {
   const { colors, themeName, setTheme } = useTheme();
 
+  const getThemeSubtitle = (name: string) => {
+    switch (name) {
+      case "classic": return "Warm, high-contrast default";
+      case "monochrome": return "Sleek, minimalist black and white";
+      case "pinkBlossom": return "Soft, floral pastel pinks";
+      case "softHorizon": return "Calm, airy blue and grey";
+      case "pearGarden": return "Fresh botanical greens";
+      case "lavenderHaze": return "Dreamy, muted purple";
+      default: return "Beautiful custom theme";
+    }
+  };
+
   return (
     <Screen safeAreaEdges={nativeHeaderScreenEdges}>
       <ScrollView contentContainerStyle={{ gap: spacing.md, paddingBottom: spacing.xxl }}>
         {Object.entries(palettes).map(([name, palette]) => {
           const isActive = themeName === name;
-          const formattedName = name.charAt(0).toUpperCase() + name.slice(1);
+          const formattedName = name.replace(/([A-Z])/g, ' $1').replace(/^./, str => str.toUpperCase());
 
           return (
             <Pressable key={name} onPress={() => setTheme(name)}>
-              <Card>
-                <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between" }}>
-                  <View style={{ flexDirection: "row", alignItems: "center", gap: spacing.md }}>
-                    <View style={{ 
-                      flexDirection: 'row', 
-                      width: 48, 
-                      height: 48, 
-                      borderRadius: 24, 
-                      backgroundColor: palette.background,
-                      borderWidth: 2,
-                      borderColor: palette.border,
-                      overflow: 'hidden',
-                      position: 'relative'
-                    }}>
-                      <View style={{ position: 'absolute', top: 0, bottom: 0, left: 24, right: 0, backgroundColor: palette.teal }} />
-                      <View style={{ position: 'absolute', bottom: 0, left: 0, right: 0, height: 24, backgroundColor: palette.coral, opacity: 0.8 }} />
-                    </View>
-                    <Text style={[typography.h2, { color: colors.ink }]}>{formattedName}</Text>
+              <View style={{
+                backgroundColor: isActive ? "#F0FAF4" : colors.surface,
+                borderColor: isActive ? "#5FAE7A" : colors.ink,
+                borderWidth: isActive ? 3 : 2,
+                borderRadius: 24,
+                padding: spacing.md,
+                flexDirection: "row",
+                alignItems: "center",
+                justifyContent: "space-between",
+                shadowColor: colors.ink,
+                shadowOffset: { width: 0, height: isActive ? 6 : 4 },
+                shadowOpacity: isActive ? 0.2 : 0.1,
+                shadowRadius: isActive ? 8 : 4,
+                elevation: isActive ? 6 : 3,
+              }}>
+                <View style={{ flexDirection: "row", alignItems: "center", gap: spacing.md, flex: 1 }}>
+                  <View style={{ 
+                    width: 64, 
+                    height: 64, 
+                    borderRadius: 16, 
+                    backgroundColor: palette.background,
+                    borderWidth: 2,
+                    borderColor: palette.ink,
+                    overflow: 'hidden',
+                    position: 'relative'
+                  }}>
+                    <View style={{ position: 'absolute', top: 0, bottom: 0, left: 32, right: 0, backgroundColor: palette.teal }} />
+                    <View style={{ position: 'absolute', bottom: 0, left: 0, right: 0, height: 32, backgroundColor: palette.coral, opacity: 0.8 }} />
                   </View>
-                  {isActive ? <CheckCircle2 size={24} color={colors.teal} /> : <View style={{ width: 24 }} />}
+                  <View style={{ flex: 1, gap: 2 }}>
+                    <Text style={[typography.h2, { color: isActive ? "#20342A" : colors.ink }]}>{formattedName}</Text>
+                    <Text style={[typography.small, { color: isActive ? "#5FAE7A" : colors.muted }]}>{getThemeSubtitle(name)}</Text>
+                  </View>
                 </View>
-              </Card>
+                {isActive ? <CheckCircle2 size={28} color="#5FAE7A" style={{ marginLeft: spacing.sm }} /> : <View style={{ width: 28, marginLeft: spacing.sm }} />}
+              </View>
             </Pressable>
           );
         })}
@@ -1260,6 +1709,29 @@ export function ThemeSelectionScreen({ navigation }: Props<"ThemeSelection">) {
 
 export function SafetyPrivacyScreen() {
   const { colors } = useTheme();
+  const deleteAccount = useAppStore((state) => state.deleteAccount);
+
+  const confirmDelete = () => {
+    Alert.alert(
+      "Delete Account?",
+      "This action is permanent. All your data, connections, and choices will be immediately erased.",
+      [
+        { text: "Cancel", style: "cancel" },
+        { 
+          text: "Delete My Account", 
+          style: "destructive",
+          onPress: async () => {
+            try {
+              await deleteAccount();
+            } catch (error) {
+              Alert.alert("Error", error instanceof Error ? error.message : "Unable to delete account");
+            }
+          }
+        }
+      ]
+    );
+  };
+
   return (
     <Screen safeAreaEdges={nativeHeaderScreenEdges}>
       <Card>
@@ -1268,11 +1740,27 @@ export function SafetyPrivacyScreen() {
           Just Choose stores profiles, connection membership, choices, option names/photos, and answers.
         </Text>
       </Card>
+
       <Card>
-        <Text style={[typography.h2, { color: colors.ink }]}>Not in v1</Text>
-        <Text style={[typography.body, { color: colors.ink }]}>
-          No categories, urgency, boards, notification preferences, or Decision Lock data.
+        <Text style={[typography.h2, { color: colors.ink }]}>What we don't store</Text>
+        <Text style={[typography.body, { color: colors.ink, marginBottom: 8 }]}>
+          • No Ads: We don't track you for advertising.
         </Text>
+        <Text style={[typography.body, { color: colors.ink }]}>
+          • No Selling Data: Your data stays between you and your connection.
+        </Text>
+      </Card>
+
+      <Card>
+        <Text style={[typography.h2, { color: colors.ink }]}>Account Management</Text>
+        <Text style={[typography.body, { color: colors.ink, marginBottom: 16 }]}>
+          You have the right to delete your account and all associated data at any time. This action cannot be undone.
+        </Text>
+        <Button 
+          label="Delete My Account" 
+          variant="danger" 
+          onPress={confirmDelete}
+        />
       </Card>
     </Screen>
   );
@@ -1307,11 +1795,13 @@ export function LeaveConnectionConfirmScreen({ navigation }: Props<"LeaveConnect
 export function ManageConnectionsScreen({ navigation }: Props<"ManageConnections">) {
   const connection = useAppStore((state) => state.connection);
   const connectedProfile = useAppStore((state) => state.connectedProfile);
-  const updateConnectionDisplayName = useAppStore((state) => state.updateConnectionDisplayName);
+  const authUserId = useAppStore((state) => state.authUserId);
+  const updateConnectionAlias = useAppStore((state) => state.updateConnectionAlias);
   const leaveConnection = useAppStore((state) => state.leaveConnection);
   const remoteStatus = useAppStore((state) => state.remoteStatus);
   const remoteError = useAppStore((state) => state.remoteError);
   const [displayName, setDisplayName] = useState(connectedProfile?.displayName ?? "");
+  const [isUploading, setIsUploading] = useState(false);
   const { colors } = useTheme();
   const uiStyles = useStyles();
 
@@ -1327,9 +1817,24 @@ export function ManageConnectionsScreen({ navigation }: Props<"ManageConnections
     );
   }
 
+  async function handleAvatarPress() {
+    if (!authUserId) return;
+    const localUri = await chooseDecisionImage();
+    if (!localUri) return;
+    setIsUploading(true);
+    try {
+      const uploaded = await uploadAvatarImage(authUserId, localUri);
+      await updateConnectionAlias(displayName, uploaded.imageUrl, uploaded.imagePath);
+    } catch (error) {
+      Alert.alert("Upload issue", getErrorMessage(error, "Unable to upload avatar."));
+    } finally {
+      setIsUploading(false);
+    }
+  }
+
   async function saveDisplayName() {
     try {
-      await updateConnectionDisplayName(displayName);
+      await updateConnectionAlias(displayName);
       Alert.alert("Connection updated", "This name is only visible to you.");
     } catch (error) {
       Alert.alert("Connection issue", getErrorMessage(error, "Unable to update connection."));
@@ -1362,7 +1867,9 @@ export function ManageConnectionsScreen({ navigation }: Props<"ManageConnections
     <Screen safeAreaEdges={nativeHeaderScreenEdges}>
       <Card>
         <View style={uiStyles.brandRow}>
-          <Image source={brandIcon} style={uiStyles.brandIcon} />
+          <Pressable onPress={handleAvatarPress} disabled={isUploading}>
+            <Avatar name={connectedProfile.displayName} size={54} imageUrl={connectedProfile.connectionAvatarUrl} />
+          </Pressable>
           <View style={uiStyles.brandText}>
             <Text style={[typography.h2, { color: colors.ink }]}>{connectedProfile.displayName}</Text>
             <Text style={uiStyles.small}>
@@ -1465,27 +1972,6 @@ function SectionHeader({ title, count }: { title: string; count: number }) {
       <Text style={[typography.h2, { color: colors.ink }]}>{title}</Text>
       <Pill>{count}</Pill>
     </View>
-  );
-}
-
-function PremiumStatusCard({ connection }: { connection: Connection }) {
-  const { colors } = useTheme();
-  const uiStyles = useStyles();
-  const label = connection.premiumEnabled ? "Premium active" : "Premium inactive";
-  const body = connection.premiumEnabled
-    ? "One subscription is covering both connected people."
-    : "One connected person needs an active connection subscription to unlock shared premium features.";
-
-  return (
-    <Card>
-      <View style={{ gap: spacing.sm }}>
-        <Pill tone={connection.premiumEnabled ? "green" : "amber"}>{label}</Pill>
-        <Text style={[typography.h2, { color: colors.ink }]}>
-          {connection.plan === "free" ? "Connection access" : `${connection.plan} access`}
-        </Text>
-        <Text style={uiStyles.small}>{body}</Text>
-      </View>
-    </Card>
   );
 }
 
@@ -1608,7 +2094,7 @@ function FloatingTabBar({
         }}
         style={[styles.tabItem, selected && styles.tabItemActive]}
       >
-        <Icon size={22} color={selected ? colors.coral : colors.ink} strokeWidth={2.2} />
+        <Icon size={22} color={selected ? colors.activeTabIcon : colors.ink} strokeWidth={2.2} />
       </Pressable>
     );
   };
@@ -1616,7 +2102,7 @@ function FloatingTabBar({
   return (
     <View style={styles.tabBar}>
       <TabButton id="home" label="Home" screen="Home" icon={Home} />
-      <TabButton id="history" label="Recent" screen="History" icon={Clock} />
+      <TabButton id="history" label="History" screen="History" icon={Clock} />
 
       <Pressable
         accessibilityRole="button"
@@ -1626,11 +2112,11 @@ function FloatingTabBar({
           {
             alignItems: "center",
             justifyContent: "center",
-            width: 68,
-            height: 68,
-            borderRadius: 34,
-            marginTop: -10,
-            marginBottom: -10,
+            width: 58,
+            height: 58,
+            borderRadius: 29,
+            marginTop: -8,
+            marginBottom: -8,
             borderWidth: 3,
             borderColor: colors.ink,
             backgroundColor: colors.surface,
@@ -1644,18 +2130,18 @@ function FloatingTabBar({
         ]}
       >
         <LinearGradient
-          colors={[colors.coral, colors.amber] as const}
+          colors={[colors.coral, colors.brandAccent] as const}
           start={{ x: 0, y: 0.5 }}
           end={{ x: 1, y: 0.5 }}
           style={{
             width: "100%",
             height: "100%",
-            borderRadius: 34,
+            borderRadius: 29,
             alignItems: "center",
             justifyContent: "center",
           }}
         >
-          <Plus size={32} color="#FFFFFF" strokeWidth={3} />
+          <Plus size={28} color="#FFFFFF" strokeWidth={3} />
         </LinearGradient>
       </Pressable>
 
@@ -1800,6 +2286,77 @@ function useAttachmentStyles() {
   });
 }
 
+function useDecisionCarouselStyles() {
+  const { colors } = useTheme();
+
+  return StyleSheet.create({
+    section: {
+      gap: spacing.md,
+    },
+    card: {
+      borderColor: colors.ink,
+      borderRadius: 34,
+      borderWidth: 3,
+      gap: spacing.md,
+      padding: spacing.lg,
+      shadowColor: colors.ink,
+      shadowOffset: { width: 7, height: 9 },
+      shadowOpacity: 0.18,
+      shadowRadius: 0,
+      width: 258,
+      elevation: 6,
+      alignItems: "center",
+    },
+    cardLifted: {
+      marginTop: spacing.md,
+      transform: [{ rotate: "1.2deg" }],
+    },
+    imageArea: {
+      alignItems: "center",
+      backgroundColor: "rgba(255, 255, 255, 0.66)",
+      borderColor: colors.ink,
+      borderRadius: 28,
+      borderWidth: 2,
+      height: 180,
+      justifyContent: "center",
+      overflow: "hidden",
+      width: "100%",
+    },
+    imagePlaceholder: {
+      backgroundColor: "rgba(255, 255, 255, 0.4)",
+    },
+    image: {
+      height: "100%",
+      width: "100%",
+    },
+    optionTitle: {
+      color: colors.ink,
+      fontSize: 22,
+      fontWeight: "900",
+      textTransform: "uppercase",
+      textAlign: "center",
+    },
+    dots: {
+      flexDirection: "row",
+      justifyContent: "center",
+      gap: spacing.sm,
+    },
+    dot: {
+      width: 10,
+      height: 10,
+      borderRadius: 5,
+      backgroundColor: colors.surfaceMuted,
+      borderWidth: 2,
+      borderColor: colors.ink,
+    },
+    dotActive: {
+      backgroundColor: colors.coral,
+      width: 24,
+      borderRadius: 12,
+    },
+  });
+}
+
 function useHistoryStyles() {
   const { colors } = useTheme();
 
@@ -1816,63 +2373,106 @@ function useHistoryStyles() {
       fontWeight: "900",
       letterSpacing: -0.5,
     },
-    plusBtn: {
-      alignItems: "center",
+    filterRow: {
+      flexDirection: "row",
+      gap: spacing.sm,
+      paddingBottom: spacing.sm,
+    },
+    filterChip: {
       backgroundColor: colors.surfaceMuted,
       borderRadius: 999,
-      height: 44,
-      justifyContent: "center",
-      width: 44,
+      paddingHorizontal: spacing.md,
+      paddingVertical: 6,
     },
-    sectionHeading: {
-      color: colors.muted,
-      fontSize: 14,
+    filterChipActive: {
+      backgroundColor: colors.coral,
+    },
+    filterText: {
+      color: colors.ink,
+      fontSize: 13,
       fontWeight: "700",
-      letterSpacing: 0.4,
-      textTransform: "uppercase",
+    },
+    filterTextActive: {
+      color: "#FFFFFF",
+    },
+    activityRow: {
+      flexDirection: "row",
+      justifyContent: "space-between",
+      alignItems: "flex-start",
+    },
+    receiptCard: {
+      backgroundColor: colors.surface,
+      borderColor: colors.ink,
+      borderRadius: 22,
+      borderWidth: 2,
+      padding: spacing.md,
+      shadowColor: colors.ink,
+      shadowOffset: { width: 3, height: 4 },
+      shadowOpacity: 0.1,
+      shadowRadius: 0,
+      elevation: 2,
     },
     activityText: {
       color: colors.ink,
-      fontSize: 17,
+      fontSize: 14,
       fontWeight: "700",
-      lineHeight: 24,
-      paddingRight: 28,
+      flexShrink: 1,
     },
     nameHighlight: {
       color: colors.coral,
       fontWeight: "900",
     },
-    dismissBtn: {
-      alignItems: "center",
-      backgroundColor: "rgba(0,0,0,0.18)",
-      borderRadius: 999,
-      height: 24,
-      justifyContent: "center",
-      position: "absolute",
-      right: 12,
-      top: 12,
-      width: 24,
-      zIndex: 2,
+    decisionTitle: {
+      color: colors.ink,
+      fontSize: 18,
+      fontWeight: "900",
+      marginTop: spacing.xs,
+      lineHeight: 22,
     },
     timestamp: {
-      alignSelf: "flex-end",
-      color: "rgba(255,255,255,0.72)",
-      fontSize: 12,
+      color: colors.muted,
+      fontSize: 13,
       fontWeight: "700",
+    },
+    thumbContainer: {
+      flexDirection: "row",
+      justifyContent: "space-between",
+      alignItems: "flex-end",
       marginTop: spacing.sm,
     },
     thumbRow: {
       flexDirection: "row",
       gap: spacing.sm,
-      marginTop: spacing.sm,
     },
     thumb: {
       backgroundColor: colors.surface,
       borderColor: colors.ink,
-      borderRadius: 14,
+      borderRadius: 16,
       borderWidth: 2,
-      height: 56,
-      width: 56,
+      height: 64,
+      width: 64,
+    },
+    thumbLabel: {
+      color: colors.muted,
+      fontSize: 13,
+      fontWeight: "700",
+    },
+    swipeActionArea: {
+      position: 'absolute',
+      right: 0,
+      top: 0,
+      bottom: 0,
+      width: 90,
+      backgroundColor: colors.coral,
+      borderRadius: 24,
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    swipeActionText: {
+      color: '#FFFFFF',
+      fontSize: 13,
+      fontWeight: '900',
+      marginTop: 4,
     },
   });
 }

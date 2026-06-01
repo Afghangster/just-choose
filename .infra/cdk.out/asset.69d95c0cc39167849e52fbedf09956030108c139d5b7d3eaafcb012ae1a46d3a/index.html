@@ -1,0 +1,225 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Just Choose — Playful Decision Making</title>
+  <meta name="description" content="A playful decision-making app for choosing between options, breaking ties, and escaping overthinking.">
+
+  <!-- Open Graph -->
+  <meta property="og:title" content="Just Choose — Playful Decision Making">
+  <meta property="og:description" content="Trouble deciding? Just Choose. A playful app for choosing between options and escaping overthinking.">
+  <meta property="og:type" content="website">
+  <meta property="og:url" content="https://justchoooose.com">
+  <meta property="og:image" content="https://justchoooose.com/og-image.png">
+
+  <!-- Favicon placeholder -->
+  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>✨</text></svg>">
+
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+
+  <!-- ═══════ HERO ═══════ -->
+  <header class="hero">
+    <div class="hero-content container">
+      <h1 class="headline fade-in">Make the tiny debate someone else's problem.</h1>
+      <p class="subheadline fade-in">A private decision app. One person creates the choices. The other just picks. No debates. No doomscrolling.</p>
+
+      <div class="cta-group fade-in">
+        <a href="#cta" class="btn btn-primary">Get the app</a>
+        <a href="#how-it-works" class="btn btn-secondary">See how it works</a>
+      </div>
+
+      <!-- Neobrutalist App Mockup (Matches Screenshot Exactly) -->
+      <div class="app-mockup-container fade-in">
+        
+        <!-- Waiting Section -->
+        <div class="mockup-header-row">
+          <h3>Waiting</h3>
+          <div class="mockup-counter">1</div>
+        </div>
+
+        <div class="choice-card">
+          <div class="choice-title">Blue or Green?</div>
+          <svg class="chevron" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"></polyline></svg>
+          <div class="pill-badge pill-pink">NEEDS A PICK</div>
+          
+          <div class="option-row">
+            <div class="option-img" style="background: url('https://images.unsplash.com/photo-1476610182048-b716b8518aae?q=80&w=200&auto=format&fit=crop') center/cover;"></div>
+            <div class="option-text">Blue</div>
+          </div>
+        </div>
+
+        <!-- Answered Section -->
+        <div class="mockup-header-row" style="margin-top: 16px;">
+          <h3>Answered</h3>
+          <div class="mockup-counter">7</div>
+        </div>
+
+        <div class="choice-card">
+          <div class="choice-title">Green Sofa or Blue Sofa?</div>
+          <svg class="chevron" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"></polyline></svg>
+          <div class="pill-badge pill-green">BLUE SOFA</div>
+          <div class="card-footer">2 options</div>
+        </div>
+
+        <!-- Help me choose (partially visible in screenshot) -->
+        <div class="choice-card" style="margin-bottom: -40px;">
+          <div class="choice-title" style="margin-bottom: 0;">Help me choose</div>
+          <svg class="chevron" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"></polyline></svg>
+        </div>
+
+        <!-- Bottom Navigation Mockup -->
+        <div class="bottom-nav-mockup">
+          <div class="nav-icon active">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path><polyline points="9 22 9 12 15 12 15 22"></polyline></svg>
+          </div>
+          <div class="nav-icon">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>
+          </div>
+          <div class="nav-fab">
+            <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#FFFFFF" stroke-width="3" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+          </div>
+          <div class="nav-icon">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"></path></svg>
+          </div>
+          <div class="nav-icon">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="4" y1="21" x2="4" y2="14"></line><line x1="4" y1="10" x2="4" y2="3"></line><line x1="12" y1="21" x2="12" y2="12"></line><line x1="12" y1="8" x2="12" y2="3"></line><line x1="20" y1="21" x2="20" y2="16"></line><line x1="20" y1="12" x2="20" y2="3"></line><line x1="1" y1="14" x2="7" y2="14"></line><line x1="9" y1="8" x2="15" y2="8"></line><line x1="17" y1="16" x2="23" y2="16"></line></svg>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </header>
+
+  <main>
+    <!-- ═══════ HOW IT WORKS ═══════ -->
+    <section class="section" id="how-it-works">
+      <div class="container">
+        <h2 class="section-title fade-in">How it works</h2>
+        
+        <div class="how-it-works-grid">
+          <div class="neo-card hiw-card fade-in">
+            <span class="hiw-icon" aria-hidden="true">✍️</span>
+            <h3>Add your options</h3>
+            <p>Enter two or more choices. Keep it simple.</p>
+          </div>
+          
+          <div class="neo-card hiw-card fade-in" style="transition-delay: 0.1s;">
+            <span class="hiw-icon" aria-hidden="true">✨</span>
+            <h3>Let the app help</h3>
+            <p>The app compares, randomises, or guides the decision.</p>
+          </div>
+          
+          <div class="neo-card hiw-card fade-in" style="transition-delay: 0.2s;">
+            <span class="hiw-icon" aria-hidden="true">😌</span>
+            <h3>Move on happier</h3>
+            <p>Get unstuck and feel lighter. No more debating.</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ═══════ FEATURES ═══════ -->
+    <section class="section">
+      <div class="container">
+        <h2 class="section-title fade-in">Everything you need to choose</h2>
+        <div class="features-grid">
+          <div class="neo-card fade-in" style="background: var(--coral-soft);">
+            <h3>🪙 Quick coin-flip style decisions</h3>
+          </div>
+          <div class="neo-card fade-in" style="background: var(--green-soft);">
+            <h3>⚖️ Compare two options</h3>
+          </div>
+          <div class="neo-card fade-in" style="background: var(--butter);">
+            <h3>💛 Save favourite choices</h3>
+          </div>
+          <div class="neo-card fade-in" style="background: var(--surface);">
+            <h3>🎲 Random picker for food, outfits, activities</h3>
+          </div>
+          <div class="neo-card fade-in" style="background: var(--amber);">
+            <h3>🤝 Share choices with friends</h3>
+          </div>
+          <div class="neo-card fade-in" style="background: var(--coral-soft);">
+            <h3>🧘 Gentle prompts when you are overthinking</h3>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ═══════ USE CASES ═══════ -->
+    <section class="section" style="background: var(--surface); border-top: 3px solid var(--ink); border-bottom: 3px solid var(--ink);">
+      <div class="container">
+        <h2 class="section-title fade-in">For all those tiny decisions that somehow take forever</h2>
+        <div class="use-cases-container">
+          <div class="uc-tag fade-in">What should I eat? 🍕</div>
+          <div class="uc-tag fade-in" style="background: var(--coral-soft);">Which outfit? 👗</div>
+          <div class="uc-tag fade-in" style="background: var(--green-soft);">Coffee or matcha? 🍵</div>
+          <div class="uc-tag fade-in" style="background: var(--butter);">Stay in or go out? 🛋️</div>
+          <div class="uc-tag fade-in">Which film? 🎬</div>
+          <div class="uc-tag fade-in" style="background: var(--amber);">What should we do today? ☀️</div>
+          <div class="uc-tag fade-in" style="background: var(--coral-soft);">Which task first? ✅</div>
+          <div class="uc-tag fade-in">Date night idea? 🍷</div>
+          <div class="uc-tag fade-in" style="background: var(--green-soft);">Heart or star? ⭐</div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ═══════ EMOTIONAL REASSURANCE ═══════ -->
+    <section class="section emotional-section">
+      <div class="container fade-in">
+        <h2 class="headline" style="color: var(--coral);">Less overthinking.<br>More choosing.</h2>
+        <p class="body-large">Just Choooose turns everyday indecision into a small, playful moment. Whether you are picking lunch, plans, outfits, or your next move, the app helps you make a choice and keep going.</p>
+      </div>
+    </section>
+
+    <!-- ═══════ FINAL CTA ═══════ -->
+    <section class="section" id="cta">
+      <div class="container fade-in">
+        <div class="cta-panel">
+          <h2>Ready to stop debating?</h2>
+          <div class="cta-group">
+            <a href="#" class="btn btn-primary" style="margin-right: 16px;">Just Choooose</a>
+            <a href="#" class="store-badge"><img src="app-store-badge.svg" alt="Download on the App Store"></a>
+            <a href="#" class="store-badge"><img src="google-play-badge.svg" alt="Get it on Google Play"></a>
+          </div>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <!-- ═══════ FOOTER ═══════ -->
+  <footer class="site-footer">
+    <div class="container">
+      <nav class="footer-links">
+        <a href="privacy.html">Privacy Policy</a>
+        <a href="mailto:mniekzad@gmail.com">Contact</a>
+      </nav>
+      <p class="copyright">© 2025 Safain Labs Ltd. All rights reserved.</p>
+    </div>
+  </footer>
+
+  <!-- Scroll-triggered fade-in -->
+  <script>
+    (function () {
+      const faders = document.querySelectorAll('.fade-in');
+      if (!faders.length) return;
+
+      const observer = new IntersectionObserver(
+        (entries) => {
+          entries.forEach((entry) => {
+            if (entry.isIntersecting) {
+              entry.target.classList.add('visible');
+              observer.unobserve(entry.target);
+            }
+          });
+        },
+        { threshold: 0.15, rootMargin: '0px 0px -40px 0px' }
+      );
+
+      faders.forEach((el) => observer.observe(el));
+    })();
+  </script>
+</body>
+</html>

@@ -6,6 +6,7 @@ import { createClient } from "@supabase/supabase-js";
 
 const supabaseUrl = process.env.EXPO_PUBLIC_SUPABASE_URL;
 const supabaseAnonKey = process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY;
+const isProductionBuild = process.env.NODE_ENV === "production";
 
 const ExpoSecureStoreAdapter = {
   getItem: (key: string) => {
@@ -34,6 +35,10 @@ const ExpoSecureStoreAdapter = {
 };
 
 export const isSupabaseConfigured = Boolean(supabaseUrl && supabaseAnonKey);
+
+if (!isSupabaseConfigured && isProductionBuild) {
+  throw new Error("Production Supabase configuration is missing.");
+}
 
 export const supabase = isSupabaseConfigured
   ? createClient(supabaseUrl!, supabaseAnonKey!, {

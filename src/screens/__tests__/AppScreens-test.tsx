@@ -43,7 +43,7 @@ describe("simplified choice screens", () => {
 
     render(<HomeScreen navigation={mockNavigation()} route={mockRoute("Home")} />);
 
-    expect(screen.getByText("Hi Alice")).toBeTruthy();
+    expect(screen.getByText("HI ALICE")).toBeTruthy();
     expect(screen.getByText("Green sofa or Blue sofa?")).toBeTruthy();
     
     const scrollView = screen.getByTestId("screen-scroll-view");
@@ -60,7 +60,7 @@ describe("simplified choice screens", () => {
 
     render(<HomeScreen navigation={navigation} route={mockRoute("Home")} />);
 
-    fireEvent.press(screen.getByLabelText("Recent"));
+    fireEvent.press(screen.getByLabelText("History"));
 
     expect(navigation.navigate).toHaveBeenCalledWith("History");
   });
@@ -88,7 +88,7 @@ describe("simplified choice screens", () => {
 
     render(<HomeScreen navigation={navigation} route={mockRoute("Home")} />);
 
-    expect(screen.getByText("Hi Alice")).toBeTruthy();
+    expect(screen.getByText("HI ALICE")).toBeTruthy();
     expect(screen.getByLabelText("Create new decision")).toBeTruthy();
     expect(screen.getByText("No connection yet")).toBeTruthy();
 
@@ -116,8 +116,8 @@ describe("simplified choice screens", () => {
 
     render(<HistoryScreen navigation={mockNavigation()} route={mockRoute("History")} />);
 
-    expect(screen.getByText("Recent")).toBeTruthy();
-    expect(screen.getByText("Blue sofa")).toBeTruthy();
+    expect(screen.getByText("HISTORY")).toBeTruthy();
+    expect(screen.getByText("Bob chose Blue sofa")).toBeTruthy();
   });
 
   test("create choice sends only option names and an optional note", async () => {
@@ -136,8 +136,8 @@ describe("simplified choice screens", () => {
       expect(repository.createDecisionWithOptions).toHaveBeenCalledWith({
         note: "Need it today",
         options: [
-          { label: "A", title: "Black chair", imageUrl: null },
-          { label: "B", title: "White chair", imageUrl: null },
+          { label: "A", title: "Black chair", imageUrl: null, imagePath: null },
+          { label: "B", title: "White chair", imageUrl: null, imagePath: null },
         ],
       }),
     );
@@ -193,7 +193,7 @@ describe("simplified choice screens", () => {
       />,
     );
 
-    expect(screen.getByText("Sent to Bob. They need to choose.")).toBeTruthy();
+    expect(screen.getByText("Waiting for Bob")).toBeTruthy();
     expect(screen.queryByText("Just choose")).toBeNull();
   });
 
@@ -224,7 +224,7 @@ describe("simplified choice screens", () => {
 
     fireEvent.press(screen.getByText("Blue sofa"));
     fireEvent.changeText(screen.getByPlaceholderText("Optional"), "This one");
-    fireEvent.press(screen.getAllByText("Just choose").at(-1)!);
+    fireEvent.press(screen.getAllByText("JUST CHOOSE").at(-1)!);
 
     await waitFor(() =>
       expect(repository.answerDecision).toHaveBeenCalledWith(
@@ -410,6 +410,7 @@ function fakeRepository(state: RemoteAppState): AppRepository {
       email: "alice@example.com",
     })),
     resendSignupConfirmation: jest.fn(async () => undefined),
+    startAppleOAuthSignIn: jest.fn(async () => ({ url: "https://example.com/auth" })),
     startGoogleSignIn: jest.fn(async () => ({ url: "https://example.com/auth" })),
     completeOAuthSignIn: jest.fn(async () => ({ userId: state.authUserId! })),
     signInWithAppleIdentityToken: jest.fn(async () => ({ userId: state.authUserId! })),
@@ -432,7 +433,9 @@ function fakeRepository(state: RemoteAppState): AppRepository {
     savePushToken: jest.fn(async () => undefined),
     updateConnectionDisplayName: jest.fn(async () => state),
     stopConnection: jest.fn(async () => ({ ...state, connection: null, connectedProfile: null, decisions: [] })),
+    deleteDecision: jest.fn(async () => undefined),
     signOut: jest.fn(async () => undefined),
+    deleteAccount: jest.fn(async () => undefined),
   };
 }
 

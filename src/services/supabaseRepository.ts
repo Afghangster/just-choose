@@ -1,4 +1,5 @@
 import { supabase } from "../lib/supabase";
+import { DECISION_IMAGE_BUCKET, extractDecisionImagePath } from "./imageService";
 import type {
   ChoiceOptionInput,
   Connection,
@@ -16,7 +17,7 @@ type SupabaseLike = {
     getUser(): Promise<{ data: { user: { id: string; email?: string } | null }; error: Error | null }>;
     signInWithPassword(input: { email: string; password: string }): Promise<{ data: { user: { id: string } | null }; error: Error | null }>;
     signInWithOAuth(input: {
-      provider: "google";
+      provider: OAuthProvider;
       options: { redirectTo: string; skipBrowserRedirect: true };
     }): Promise<{ data: { url: string | null }; error: Error | null }>;
     exchangeCodeForSession(code: string): Promise<{ data: { user: { id: string } | null }; error: Error | null }>;
@@ -40,7 +41,23 @@ type SupabaseLike = {
   };
   from(table: string): any;
   rpc(fn: string, args?: Record<string, unknown>): any;
+  storage?: {
+    from(bucket: string): {
+      createSignedUrl(path: string, expiresIn: number): Promise<{ data: { signedUrl: string | null } | null; error: Error | null }>;
+      createSignedUrls?(paths: string[], expiresIn: number): Promise<{ data: Array<{ path?: string; signedUrl?: string | null; signedURL?: string | null }> | null; error: Error | null }>;
+      list?(path?: string, options?: { limit?: number; offset?: number }): Promise<{ data: StorageListItem[] | null; error: Error | null }>;
+      remove?(paths: string[]): Promise<{ data: unknown; error: Error | null }>;
+    };
+  };
 };
+
+type OAuthProvider = "apple" | "google";
+
+type StorageListItem = { name: string; id?: string | null; metadata?: unknown };
+type StorageList = (path?: string, options?: { limit?: number; offset?: number }) => Promise<{
+  data: StorageListItem[] | null;
+  error: Error | null;
+}>;
 
 export type RemoteAppState = {
   authUserId: string | null;
@@ -78,6 +95,7 @@ export type AppRepository = {
   signInWithEmail(email: string, password: string): Promise<{ userId: string }>;
   signUpWithEmail(email: string, password: string): Promise<SignUpResult>;
   resendSignupConfirmation(email: string): Promise<void>;
+  startAppleOAuthSignIn(redirectTo: string): Promise<{ url: string }>;
   startGoogleSignIn(redirectTo: string): Promise<{ url: string }>;
   completeOAuthSignIn(callbackUrl: string): Promise<{ userId: string }>;
   signInWithAppleIdentityToken(identityToken: string): Promise<{ userId: string }>;
@@ -94,9 +112,11 @@ export type AppRepository = {
   createDecisionWithOptions(input: RemoteDecisionInput): Promise<Decision>;
   answerDecision(decisionId: string, input: RemoteResponseInput): Promise<DecisionResponse>;
   savePushToken(userId: string, token: string, platform?: string | null): Promise<void>;
-  updateConnectionDisplayName(input: { connectionId: string; targetUserId: string; displayName: string }): Promise<RemoteAppState>;
+  updateConnectionDisplayName(input: { connectionId: string; targetUserId: string; displayName: string; avatarUrl?: string | null; avatarPath?: string | null; }): Promise<RemoteAppState>;
   stopConnection(connectionId: string): Promise<RemoteAppState>;
+  deleteDecision(decisionId: string): Promise<void>;
   signOut(): Promise<void>;
+  deleteAccount(): Promise<void>;
 };
 
 const emptyRemoteState = (authUserId: string | null = null): RemoteAppState => ({
@@ -153,9 +173,17 @@ export function createSupabaseRepository(client: SupabaseLike | null): AppReposi
     );
     const membership = membershipRows[0];
     if (!membership) {
+      const profileAvatarPath = storedImagePath(profile.avatar_path, profile.avatar_url);
+      const signedImageUrls = await createSignedImageUrlMap(client, [profileAvatarPath]);
       return {
         ...emptyRemoteState(userId),
-        profile: toProfile(profile),
+        profile: toProfile(
+          profile,
+          null,
+          null,
+          null,
+          signedImageUrls.get(profileAvatarPath ?? "") ?? profile.avatar_url,
+        ),
       };
     }
 
@@ -209,14 +237,38 @@ export function createSupabaseRepository(client: SupabaseLike | null): AppReposi
           query.select("*").in("decision_id", decisionIds).order("created_at", { ascending: false }),
         )
       : [];
+    const profileAvatarPath = storedImagePath(profile.avatar_path, profile.avatar_url);
+    const connectedProfileAvatarPath = connectedProfile
+      ? storedImagePath(connectedProfile.avatar_path, connectedProfile.avatar_url)
+      : null;
+    const connectionAvatarPath = storedImagePath(alias?.avatar_path, alias?.avatar_url);
+    const optionImagePaths = options.map((option) => storedImagePath(option.image_path, option.image_url));
+    const signedImageUrls = await createSignedImageUrlMap(
+      client,
+      [profileAvatarPath, connectedProfileAvatarPath, connectionAvatarPath, ...optionImagePaths],
+    );
 
     return {
       authUserId: userId,
-      profile: toProfile(profile),
-      connectedProfile: connectedProfile ? toProfile(connectedProfile, alias?.display_name ?? null) : null,
+      profile: toProfile(
+        profile,
+        null,
+        null,
+        null,
+        signedImageUrls.get(profileAvatarPath ?? "") ?? profile.avatar_url,
+      ),
+      connectedProfile: connectedProfile
+        ? toProfile(
+            connectedProfile,
+            alias?.display_name ?? null,
+            signedImageUrls.get(connectionAvatarPath ?? "") ?? alias?.avatar_url ?? null,
+            connectionAvatarPath,
+            signedImageUrls.get(connectedProfileAvatarPath ?? "") ?? connectedProfile.avatar_url,
+          )
+        : null,
       connection: toConnection(connection, inviteRows[0]),
       pendingConnectionRequests,
-      decisions: decisions.map((decision) => toDecision(decision, options, responses)),
+      decisions: decisions.map((decision) => toDecision(decision, options, responses, signedImageUrls)),
     };
   }
 
@@ -255,6 +307,27 @@ export function createSupabaseRepository(client: SupabaseLike | null): AppReposi
       throw error;
     }
     return (data ?? []) as T[];
+  }
+
+  async function startOAuthSignIn(provider: OAuthProvider, redirectTo: string) {
+    if (!client) {
+      return { url: `justchoose://auth/callback?code=mock-${provider}` };
+    }
+    const { data, error } = await client.auth.signInWithOAuth({
+      provider,
+      options: {
+        redirectTo,
+        skipBrowserRedirect: true,
+      },
+    });
+    if (error) {
+      throw error;
+    }
+    if (!data.url) {
+      const label = provider === "apple" ? "Apple" : "Google";
+      throw new Error(`${label} sign-in did not return a login URL.`);
+    }
+    return { url: data.url };
   }
 
   return {
@@ -320,24 +393,12 @@ export function createSupabaseRepository(client: SupabaseLike | null): AppReposi
       }
     },
 
+    async startAppleOAuthSignIn(redirectTo) {
+      return startOAuthSignIn("apple", redirectTo);
+    },
+
     async startGoogleSignIn(redirectTo) {
-      if (!client) {
-        return { url: "justchoose://auth/callback?code=mock" };
-      }
-      const { data, error } = await client.auth.signInWithOAuth({
-        provider: "google",
-        options: {
-          redirectTo,
-          skipBrowserRedirect: true,
-        },
-      });
-      if (error) {
-        throw error;
-      }
-      if (!data.url) {
-        throw new Error("Google sign-in did not return a login URL.");
-      }
-      return { url: data.url };
+      return startOAuthSignIn("google", redirectTo);
     },
 
     async completeOAuthSignIn(callbackUrl) {
@@ -420,6 +481,7 @@ export function createSupabaseRepository(client: SupabaseLike | null): AppReposi
         age: profile.age ?? null,
         gender: profile.gender ?? null,
         avatar_url: profile.avatarUrl ?? null,
+        avatar_path: profile.avatarPath ?? extractDecisionImagePath(profile.avatarUrl),
       });
       if (error) {
         throw error;
@@ -540,6 +602,7 @@ export function createSupabaseRepository(client: SupabaseLike | null): AppReposi
           label: opt.label,
           title: opt.title ?? null,
           imageUrl: opt.imageUrl ?? null,
+          imagePath: opt.imagePath ?? null,
           sortOrder: idx,
         }));
         const decision: Decision = {
@@ -584,6 +647,7 @@ export function createSupabaseRepository(client: SupabaseLike | null): AppReposi
         label: option.label,
         title: option.title?.trim() || null,
         image_url: option.imageUrl ?? null,
+        image_path: option.imagePath ?? extractDecisionImagePath(option.imageUrl),
         sort_order: index,
         created_at: createdAt,
       }));
@@ -654,26 +718,34 @@ export function createSupabaseRepository(client: SupabaseLike | null): AppReposi
       }
     },
 
-    async updateConnectionDisplayName({ connectionId, targetUserId, displayName }) {
+    async updateConnectionDisplayName({ connectionId, targetUserId, displayName, avatarUrl, avatarPath }) {
       if (!client) {
         if (mockState.connectedProfile?.id === targetUserId) {
           mockState.connectedProfile = {
             ...mockState.connectedProfile,
             displayName: displayName.trim(),
             connectionDisplayName: displayName.trim(),
+            connectionAvatarUrl: avatarUrl !== undefined ? avatarUrl : mockState.connectedProfile.connectionAvatarUrl,
+            connectionAvatarPath: avatarPath !== undefined ? avatarPath : mockState.connectedProfile.connectionAvatarPath,
           };
         }
         return mockState;
       }
 
       const ownerUserId = await requireUserId();
+      const payload: any = {
+        connection_id: connectionId,
+        owner_user_id: ownerUserId,
+        target_user_id: targetUserId,
+        display_name: displayName.trim(),
+      };
+      if (avatarUrl !== undefined) {
+        payload.avatar_url = avatarUrl;
+        payload.avatar_path = avatarPath ?? extractDecisionImagePath(avatarUrl);
+      }
+
       const { error } = await client.from("connection_aliases").upsert(
-        {
-          connection_id: connectionId,
-          owner_user_id: ownerUserId,
-          target_user_id: targetUserId,
-          display_name: displayName.trim(),
-        },
+        payload,
         { onConflict: "connection_id,owner_user_id,target_user_id" },
       );
       if (error) {
@@ -701,12 +773,37 @@ export function createSupabaseRepository(client: SupabaseLike | null): AppReposi
       return loadCurrentUserAppState();
     },
 
+    async deleteDecision(decisionId) {
+      if (!client) {
+        mockState.decisions = mockState.decisions.filter(d => d.id !== decisionId);
+        return;
+      }
+      // Note: Make sure the backend allows deleting your own decision.
+      const { error } = await client.from("decisions").delete().eq("id", decisionId);
+      if (error) {
+        throw error;
+      }
+    },
+
     async signOut() {
       if (!client) {
         mockState = emptyRemoteState();
         return;
       }
       const { error } = await client.auth.signOut();
+      if (error) {
+        throw error;
+      }
+    },
+
+    async deleteAccount() {
+      if (!client) {
+        mockState = emptyRemoteState();
+        return;
+      }
+      const userId = await requireUserId();
+      await deleteStoredAccountImages(client, userId);
+      const { error } = await client.rpc("delete_user_account");
       if (error) {
         throw error;
       }
@@ -730,6 +827,8 @@ export const signUpWithEmail = (email: string, password: string) =>
   appRepository.signUpWithEmail(email, password);
 export const resendSignupConfirmation = (email: string) =>
   appRepository.resendSignupConfirmation(email);
+export const startAppleOAuthSignIn = (redirectTo: string) =>
+  appRepository.startAppleOAuthSignIn(redirectTo);
 export const startGoogleSignIn = (redirectTo: string) =>
   appRepository.startGoogleSignIn(redirectTo);
 export const completeOAuthSignIn = (callbackUrl: string) =>
@@ -741,6 +840,7 @@ export const signInWithPhoneOtp = (phone: string) =>
 export const verifyPhoneOtp = (phone: string, token: string) =>
   appRepository.verifyPhoneOtp(phone, token);
 export const upsertProfile = (profile: Profile) => appRepository.upsertProfile(profile);
+export const deleteAccount = () => appRepository.deleteAccount();
 
 type QueryResult<T> = {
   data: T;
@@ -753,6 +853,7 @@ type ProfileRow = {
   age: number | null;
   gender: Gender | null;
   avatar_url: string | null;
+  avatar_path?: string | null;
 };
 
 type ConnectionAliasRow = {
@@ -761,6 +862,8 @@ type ConnectionAliasRow = {
   owner_user_id: string;
   target_user_id: string;
   display_name: string;
+  avatar_url: string | null;
+  avatar_path?: string | null;
 };
 
 type ConnectionRow = {
@@ -832,6 +935,7 @@ type DecisionOptionRow = {
   label: string;
   title: string | null;
   image_url: string | null;
+  image_path?: string | null;
   sort_order: number;
 };
 
@@ -852,15 +956,24 @@ type PushTokenRow = {
   platform: string | null;
 };
 
-function toProfile(row: ProfileRow, connectionDisplayName?: string | null): Profile {
+function toProfile(
+  row: ProfileRow,
+  connectionDisplayName?: string | null,
+  connectionAvatarUrl?: string | null,
+  connectionAvatarPath?: string | null,
+  avatarUrl?: string | null,
+): Profile {
   return {
     id: row.id,
     displayName: connectionDisplayName?.trim() || row.display_name,
     profileDisplayName: row.display_name,
     connectionDisplayName: connectionDisplayName ?? null,
+    connectionAvatarUrl: connectionAvatarUrl ?? null,
+    connectionAvatarPath: connectionAvatarPath ?? null,
     age: row.age ?? null,
     gender: row.gender ?? null,
-    avatarUrl: row.avatar_url,
+    avatarUrl: avatarUrl ?? row.avatar_url,
+    avatarPath: storedImagePath(row.avatar_path, row.avatar_url),
   };
 }
 
@@ -874,7 +987,7 @@ function toConnection(row: ConnectionRow, activeInvite?: ConnectionInviteRow): C
     billingOwnerUserId: row.billing_owner_user_id ?? null,
     subscriptionStatus,
     plan: row.plan ?? "free",
-    premiumEnabled: subscriptionStatus === "active" || subscriptionStatus === "trialing",
+    premiumEnabled: true,
     subscriptionCurrentPeriodEnd: row.subscription_current_period_end ?? null,
     createdAt: row.created_at,
   };
@@ -901,9 +1014,12 @@ function toDecision(
   row: DecisionRow,
   options: DecisionOptionRow[],
   responses: DecisionResponseRow[],
+  signedImageUrls: Map<string, string> = new Map(),
 ): Decision {
   const response = responses.find((item) => item.decision_id === row.id) ?? null;
-  const mappedOptions = options.filter((option) => option.decision_id === row.id).map(toOption);
+  const mappedOptions = options
+    .filter((option) => option.decision_id === row.id)
+    .map((option) => toOption(option, signedImageUrls));
   return {
     id: row.id,
     connectionId: row.connection_id,
@@ -920,13 +1036,15 @@ function toDecision(
   };
 }
 
-function toOption(row: DecisionOptionRow): DecisionOption {
+function toOption(row: DecisionOptionRow, signedImageUrls: Map<string, string> = new Map()): DecisionOption {
+  const imagePath = storedImagePath(row.image_path, row.image_url);
   return {
     id: row.id,
     decisionId: row.decision_id,
     label: row.label,
     title: row.title,
-    imageUrl: row.image_url,
+    imageUrl: imagePath ? signedImageUrls.get(imagePath) ?? row.image_url : row.image_url,
+    imagePath,
     sortOrder: row.sort_order,
   };
 }
@@ -956,6 +1074,97 @@ function makeDecisionTitle(options: DecisionOption[]) {
 
 function normalizeInviteCode(inviteCode: string) {
   return inviteCode.replace(/[^a-zA-Z0-9]/g, "").toUpperCase();
+}
+
+function storedImagePath(path?: string | null, legacyUrl?: string | null) {
+  return path ?? extractDecisionImagePath(legacyUrl);
+}
+
+async function createSignedImageUrlMap(client: SupabaseLike | null, paths: Array<string | null | undefined>) {
+  const uniquePaths = Array.from(new Set(paths.filter((path): path is string => Boolean(path))));
+  const signedUrls = new Map<string, string>();
+  if (!client?.storage || uniquePaths.length === 0) {
+    return signedUrls;
+  }
+
+  const bucket = client.storage.from(DECISION_IMAGE_BUCKET);
+  if (bucket.createSignedUrls) {
+    const { data, error } = await bucket.createSignedUrls(uniquePaths, 60 * 60);
+    if (error) {
+      throw error;
+    }
+    (data ?? []).forEach((item, index) => {
+      const path = item.path ?? uniquePaths[index];
+      const signedUrl = item.signedUrl ?? item.signedURL;
+      if (path && signedUrl) {
+        signedUrls.set(path, signedUrl);
+      }
+    });
+    return signedUrls;
+  }
+
+  await Promise.all(
+    uniquePaths.map(async (path) => {
+      const { data, error } = await bucket.createSignedUrl(path, 60 * 60);
+      if (error) {
+        throw error;
+      }
+      if (data?.signedUrl) {
+        signedUrls.set(path, data.signedUrl);
+      }
+    }),
+  );
+  return signedUrls;
+}
+
+async function deleteStoredAccountImages(client: SupabaseLike, userId: string) {
+  const bucket = client.storage?.from(DECISION_IMAGE_BUCKET);
+  if (!bucket?.list || !bucket.remove) {
+    return;
+  }
+
+  const list = bucket.list.bind(bucket);
+  const remove = bucket.remove.bind(bucket);
+  const paths = await listStoredAccountImagePaths(list, userId);
+  if (paths.length === 0) {
+    return;
+  }
+
+  const { error } = await remove(paths);
+  if (error) {
+    throw error;
+  }
+}
+
+async function listStoredAccountImagePaths(
+  list: StorageList,
+  userId: string,
+) {
+  const paths: string[] = [];
+  const folders = [userId, `${userId}/avatars`];
+
+  for (const folder of folders) {
+    let offset = 0;
+    const limit = 100;
+    while (true) {
+      const { data, error } = await list(folder, { limit, offset });
+      if (error) {
+        throw error;
+      }
+      const items = data ?? [];
+      paths.push(
+        ...items
+          .filter((item) => item.name && item.id)
+          .map((item) => `${folder}/${item.name}`),
+      );
+      if (items.length < limit) {
+        break;
+      }
+      offset += limit;
+    }
+  }
+
+  return paths;
 }
 
 async function sendChoicePushNotifications(tokens: string[], senderName: string, decision: Decision) {

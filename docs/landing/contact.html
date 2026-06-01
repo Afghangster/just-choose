@@ -1,0 +1,203 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Contact Us — Just Choose</title>
+  <meta name="description" content="Have feedback, suggestions, or questions? Get in touch with the Just Choose team.">
+  <meta property="og:title" content="Contact Us — Just Choose">
+  <link rel="icon" type="image/png" href="images/app-icon.png">
+
+  <!-- Google Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800;900&display=swap" rel="stylesheet">
+
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body style="display: flex; flex-direction: column; min-height: 100vh;">
+
+  <!-- ====== NAVBAR ====== -->
+  <nav class="navbar" id="navbar">
+    <div class="navbar__inner">
+      <a href="index.html" class="navbar__brand" style="text-decoration: none;">
+        <img src="images/app-icon.png" alt="Just Choose" class="navbar__icon">
+        <span class="navbar__name">Just Choose</span>
+      </a>
+      <ul class="navbar__links">
+        <li><a href="index.html#problem" class="navbar__link">The Problem</a></li>
+        <li><a href="index.html#how-it-works" class="navbar__link">How It Works</a></li>
+        <li><a href="index.html#features" class="navbar__link">Features</a></li>
+        <li>
+          <a href="index.html#download" class="btn btn--primary btn--small navbar__cta">Get the App</a>
+        </li>
+      </ul>
+      <button class="mobile-menu-toggle" aria-label="Toggle menu" id="mobile-menu-btn">
+        <span></span>
+        <span></span>
+        <span></span>
+      </button>
+    </div>
+  </nav>
+
+  <!-- ====== MAIN CONTENT ====== -->
+  <main style="flex: 1; display: flex; align-items: center; padding-top: 80px; padding-bottom: 80px;">
+    <section class="section section--alt" style="width: 100%; min-height: 100%;">
+      <div class="container" style="max-width: 600px;">
+        <div class="card card--butter reveal" style="padding: 48px 32px;">
+          <div style="text-align: center;">
+            <span class="section-label">Contact Us</span>
+            <h1 class="text-h1" style="margin-top: 16px;">Got feedback? <br>Or just a rant?</h1>
+            <p class="text-body" style="margin-top: 24px; max-width: 400px; margin-left: auto; margin-right: auto; margin-bottom: 32px;">
+              Whether you have suggestions, feature requests, or you just want to tell us how many times your partner said "I don't mind" today — we want to hear it.
+            </p>
+          </div>
+
+          <form id="contact-form" style="display: flex; flex-direction: column; gap: 20px;">
+            <div style="display: flex; flex-direction: column; gap: 8px;">
+              <label for="name" style="font-weight: 700; color: var(--text-main);">Your Name</label>
+              <input type="text" id="name" required style="padding: 12px 16px; border-radius: 12px; border: 2px solid var(--border-color); font-family: 'Inter', sans-serif; font-size: 16px; width: 100%; box-sizing: border-box;" placeholder="John Doe">
+            </div>
+
+            <div style="display: flex; flex-direction: column; gap: 8px;">
+              <label for="topic" style="font-weight: 700; color: var(--text-main);">Topic</label>
+              <div style="position: relative;">
+                <select id="topic" style="padding: 12px 16px; border-radius: 12px; border: 2px solid var(--border-color); font-family: 'Inter', sans-serif; font-size: 16px; background-color: #fff; appearance: none; width: 100%; box-sizing: border-box;">
+                  <option value="General Feedback">General Feedback</option>
+                  <option value="Feature Request">Feature Request</option>
+                  <option value="Support">I need help / Support</option>
+                  <option value="Rant">Just a rant</option>
+                </select>
+                <div style="position: absolute; right: 16px; top: 50%; transform: translateY(-50%); pointer-events: none; font-size: 12px;">▼</div>
+              </div>
+            </div>
+
+            <div style="display: flex; flex-direction: column; gap: 8px;">
+              <label for="message" style="font-weight: 700; color: var(--text-main);">Message</label>
+              <textarea id="message" required rows="5" style="padding: 12px 16px; border-radius: 12px; border: 2px solid var(--border-color); font-family: 'Inter', sans-serif; font-size: 16px; resize: vertical; width: 100%; box-sizing: border-box;" placeholder="Tell us everything..."></textarea>
+            </div>
+
+            <button type="submit" class="btn btn--primary" style="margin-top: 12px; width: 100%; justify-content: center; cursor: pointer;">
+              <span>✉️</span> Send
+            </button>
+          </form>
+
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <!-- ====== FOOTER ====== -->
+  <footer class="footer" id="footer">
+    <div class="container">
+      <div class="footer__grid">
+        <div>
+          <a href="index.html" class="navbar__brand" style="margin-bottom: 4px; text-decoration: none;">
+            <img src="images/app-icon.png" alt="Just Choose" class="navbar__icon" style="border-color: rgba(255,247,232,0.3);">
+            <span class="navbar__name" style="color: #FFF7E8;">Just Choose</span>
+          </a>
+          <p class="footer__brand-description">
+            The private decision app for couples, friends, and families who are done hearing "I don't mind". Just Choose. It'll take five seconds.
+          </p>
+        </div>
+        <div>
+          <h4 class="footer__heading">Product</h4>
+          <ul class="footer__link-list">
+            <li><a href="index.html#features" class="footer__link">Features</a></li>
+            <li><a href="index.html#how-it-works" class="footer__link">How It Works</a></li>
+            <li><a href="index.html#themes" class="footer__link">Themes</a></li>
+            <li><a href="index.html#download" class="footer__link">Download</a></li>
+          </ul>
+        </div>
+        <div>
+          <h4 class="footer__heading">Legal</h4>
+          <ul class="footer__link-list">
+            <li><a href="privacy.html" class="footer__link">Privacy Policy</a></li>
+            <li><a href="#" class="footer__link">Terms of Service</a></li>
+          </ul>
+        </div>
+        <div>
+          <h4 class="footer__heading">Connect</h4>
+          <ul class="footer__link-list">
+            <li><a href="contact.html" class="footer__link">Contact Us</a></li>
+          </ul>
+        </div>
+      </div>
+      <div class="footer__bottom">
+        <span>&copy; 2026 Safain Labs Ltd. All rights reserved.</span>
+        <span>Made with 😤 by people who are tired of "I don't know".</span>
+      </div>
+    </div>
+  </footer>
+
+  <script>
+    // Reveal script for animation
+    const revealElements = document.querySelectorAll('.reveal');
+    const revealObserver = new IntersectionObserver((entries) => {
+      entries.forEach(entry => {
+        if (entry.isIntersecting) {
+          entry.target.classList.add('revealed');
+          revealObserver.unobserve(entry.target);
+        }
+      });
+    }, { threshold: 0.15, rootMargin: '0px 0px -60px 0px' });
+    revealElements.forEach(el => revealObserver.observe(el));
+
+    // Mobile menu toggle
+    const mobileBtn = document.getElementById('mobile-menu-btn');
+    const navLinks = document.querySelector('.navbar__links');
+    let menuOpen = false;
+    if (mobileBtn) {
+      mobileBtn.addEventListener('click', () => {
+        menuOpen = !menuOpen;
+        if (menuOpen) {
+          navLinks.style.display = 'flex';
+          navLinks.style.flexDirection = 'column';
+          navLinks.style.position = 'absolute';
+          navLinks.style.top = '100%';
+          navLinks.style.left = '0';
+          navLinks.style.right = '0';
+          navLinks.style.background = 'rgba(255, 247, 232, 0.97)';
+          navLinks.style.backdropFilter = 'blur(20px)';
+          navLinks.style.padding = '24px';
+          navLinks.style.borderBottom = '2px solid #18120F';
+          navLinks.style.gap = '16px';
+          navLinks.style.boxShadow = '0 8px 0 rgba(0,0,0,0.08)';
+        } else {
+          navLinks.style.display = '';
+          navLinks.style.flexDirection = '';
+          navLinks.style.position = '';
+          navLinks.style.top = '';
+          navLinks.style.left = '';
+          navLinks.style.right = '';
+          navLinks.style.background = '';
+          navLinks.style.backdropFilter = '';
+          navLinks.style.padding = '';
+          navLinks.style.borderBottom = '';
+          navLinks.style.gap = '';
+          navLinks.style.boxShadow = '';
+        }
+      });
+    }
+
+    // Contact Form Handler
+    const contactForm = document.getElementById('contact-form');
+    if (contactForm) {
+      contactForm.addEventListener('submit', (e) => {
+        e.preventDefault();
+        const name = document.getElementById('name').value;
+        const topic = document.getElementById('topic').value;
+        const message = document.getElementById('message').value;
+
+        const emailAddress = 'mniekzad@gmail.com';
+        const subject = `Just Choose: ${topic}`;
+        const body = `Hi Just Choose Team,\n\n${message}\n\nBest regards,\n${name}`;
+
+        const mailtoLink = `mailto:${emailAddress}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
+        
+        window.location.href = mailtoLink;
+      });
+    }
+  </script>
+</body>
+</html>

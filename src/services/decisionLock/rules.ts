@@ -115,7 +115,7 @@ export function evaluateDecisionLockEligibility({
   if (!settings.allowedConnectedProfileId || settings.allowedConnectedProfileId !== decision.createdBy) {
     return {
       allowed: false,
-      reason: "This connection is not approved for Decision Lock nudges.",
+      reason: "This connection is not approved for Decision Lock.",
     };
   }
 

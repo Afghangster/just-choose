@@ -7,6 +7,7 @@ export const createDecisionSchema = z.object({
       z.object({
         title: z.string().optional(),
         imageUrl: z.string().nullable().optional(),
+        imagePath: z.string().nullable().optional(),
       }),
     )
     .min(2, "Add at least two options.")

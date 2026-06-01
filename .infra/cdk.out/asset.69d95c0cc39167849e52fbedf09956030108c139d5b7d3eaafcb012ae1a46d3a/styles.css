@@ -1,0 +1,434 @@
+/* ───────────────────────────────────────────────
+   Just Choose — Neobrutalism App Theme
+   ─────────────────────────────────────────────── */
+
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;900&display=swap');
+
+:root {
+  /* Exact Colors from App Theme */
+  --bg-cream: #FFF7E8;
+  --surface: #FFFFFF;
+  --ink: #18120F;
+  --muted: #6F5A50;
+  
+  --coral-soft: #FFE0DD;
+  --green-soft: #D8FFE5;
+  --amber: #FF9F1C;
+  --butter: #FFF06A;
+  --coral: #FF4F59;
+  
+  --border-color: #18120F;
+  --shadow-color: rgba(24, 18, 15, 0.16);
+  
+  /* Typography */
+  --font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+  
+  /* Radii */
+  --radius-sm: 14px;
+  --radius-md: 22px;
+  --radius-lg: 30px;
+  --radius-xl: 38px;
+  --radius-pill: 9999px;
+  
+  /* Layout */
+  --container-width: 1200px;
+}
+
+/* ── Reset ── */
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  font-family: var(--font-family);
+  color: var(--ink);
+  background-color: var(--bg-cream);
+  line-height: 1.5;
+  overflow-x: hidden;
+  -webkit-font-smoothing: antialiased;
+}
+
+img, svg {
+  max-width: 100%;
+  display: block;
+}
+
+a {
+  text-decoration: none;
+  color: inherit;
+}
+
+/* ── Typography ── */
+h1, h2, h3, h4 {
+  font-weight: 900;
+  line-height: 1.1;
+  color: var(--ink);
+  letter-spacing: -0.02em;
+}
+
+.headline {
+  font-size: clamp(3rem, 8vw, 5.5rem);
+  margin-bottom: 24px;
+}
+
+.subheadline {
+  font-size: clamp(1.25rem, 3vw, 1.5rem);
+  font-weight: 600;
+  color: var(--muted);
+  max-width: 600px;
+  margin: 0 auto 40px;
+}
+
+.section-title {
+  font-size: clamp(2rem, 5vw, 3rem);
+  text-align: center;
+  margin-bottom: 64px;
+}
+
+.body-large {
+  font-size: 1.25rem;
+  color: var(--muted);
+  font-weight: 600;
+}
+
+/* ── Layout ── */
+.container {
+  max-width: var(--container-width);
+  margin: 0 auto;
+  padding: 0 24px;
+  position: relative;
+  z-index: 10;
+}
+
+.section {
+  padding: 120px 0;
+  position: relative;
+}
+
+/* ── Buttons ── */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 16px 40px;
+  border-radius: var(--radius-pill);
+  font-weight: 900;
+  font-size: 1.25rem;
+  cursor: pointer;
+  border: 3px solid var(--border-color);
+  box-shadow: 4px 6px 0px var(--shadow-color);
+  transition: transform 0.1s ease, box-shadow 0.1s ease;
+}
+
+.btn-primary {
+  background-color: var(--ink);
+  color: #FFF;
+}
+
+.btn-primary:active {
+  transform: translateY(4px) translateX(2px);
+  box-shadow: 0px 2px 0px var(--shadow-color);
+}
+
+.btn-secondary {
+  background-color: var(--surface);
+  color: var(--ink);
+}
+
+.btn-secondary:active {
+  transform: translateY(4px) translateX(2px);
+  box-shadow: 0px 2px 0px var(--shadow-color);
+}
+
+.store-badge img {
+  height: 54px;
+  transition: transform 0.2s ease;
+}
+
+.store-badge:hover img {
+  transform: scale(1.02);
+}
+
+/* ── Hero Section ── */
+.hero {
+  position: relative;
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 120px 0 80px;
+  overflow: hidden;
+  text-align: center;
+}
+
+.hero-content {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.cta-group {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 24px;
+  justify-content: center;
+  align-items: center;
+  margin-top: 32px;
+}
+
+/* ── Neobrutalist Cards ── */
+.neo-card {
+  background: var(--surface);
+  border: 3px solid var(--border-color);
+  border-radius: var(--radius-xl);
+  box-shadow: 6px 8px 0px var(--shadow-color);
+  padding: 32px;
+  text-align: left;
+}
+
+/* ── Exact App Mockup UI ── */
+.app-mockup-container {
+  margin-top: 64px;
+  width: 100%;
+  max-width: 400px;
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+/* List Headers */
+.mockup-header-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0 8px;
+}
+
+.mockup-header-row h3 {
+  font-size: 24px;
+}
+
+.mockup-counter {
+  background: var(--butter);
+  border: 3px solid var(--border-color);
+  border-radius: 50%;
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 900;
+  font-size: 14px;
+}
+
+/* Choice Cards */
+.choice-card {
+  background: var(--surface);
+  border: 3px solid var(--border-color);
+  border-radius: var(--radius-xl);
+  box-shadow: 6px 8px 0px var(--shadow-color);
+  padding: 24px;
+  position: relative;
+  text-align: left;
+}
+
+.choice-title {
+  font-size: 22px;
+  font-weight: 900;
+  margin-bottom: 12px;
+  padding-right: 24px; /* Space for chevron */
+}
+
+.chevron {
+  position: absolute;
+  top: 24px;
+  right: 24px;
+  opacity: 0.5;
+}
+
+/* Badge Pills */
+.pill-badge {
+  display: inline-block;
+  padding: 4px 12px;
+  border: 2px solid var(--border-color);
+  border-radius: var(--radius-pill);
+  font-size: 12px;
+  font-weight: 900;
+  letter-spacing: 0.05em;
+  margin-bottom: 16px;
+}
+
+.pill-pink { background: var(--coral-soft); }
+.pill-green { background: var(--green-soft); }
+
+/* Option Cards inside Choices */
+.option-row {
+  display: flex;
+  height: 100px;
+  border: 2px solid var(--border-color);
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+}
+
+.option-img {
+  width: 100px;
+  height: 100%;
+  background: #E8E8E8;
+  border-right: 2px solid var(--border-color);
+  object-fit: cover;
+}
+
+.option-text {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  padding-left: 20px;
+  font-size: 20px;
+  font-weight: 900;
+}
+
+.card-footer {
+  margin-top: 16px;
+  color: var(--muted);
+  font-size: 14px;
+}
+
+/* Bottom Nav Mockup */
+.bottom-nav-mockup {
+  position: sticky;
+  bottom: 24px;
+  margin-top: 40px;
+  background: var(--surface);
+  border: 3px solid var(--border-color);
+  border-radius: var(--radius-pill);
+  box-shadow: 4px 6px 0px var(--shadow-color);
+  padding: 8px 16px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  height: 72px;
+}
+
+.nav-icon {
+  width: 48px;
+  height: 48px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+}
+
+.nav-icon.active {
+  background: var(--coral-soft);
+}
+
+.nav-fab {
+  background: var(--amber);
+  border: 3px solid var(--border-color);
+  border-radius: 50%;
+  width: 64px;
+  height: 64px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  top: -12px;
+}
+
+/* ── How It Works ── */
+.how-it-works-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: 32px;
+}
+
+.hiw-card {
+  text-align: center;
+}
+
+.hiw-icon {
+  font-size: 48px;
+  margin-bottom: 24px;
+  display: inline-block;
+}
+
+.hiw-card h3 {
+  font-size: 24px;
+  margin-bottom: 16px;
+}
+
+/* ── Features ── */
+.features-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: 24px;
+}
+
+/* ── Use Cases ── */
+.use-cases-container {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16px;
+  justify-content: center;
+  max-width: 900px;
+  margin: 0 auto;
+}
+
+.uc-tag {
+  background: var(--surface);
+  padding: 16px 24px;
+  border-radius: var(--radius-pill);
+  font-size: 18px;
+  font-weight: 700;
+  border: 3px solid var(--border-color);
+  box-shadow: 4px 4px 0px var(--shadow-color);
+  transition: transform 0.2s;
+}
+
+.uc-tag:hover {
+  transform: translateY(-4px);
+}
+
+/* ── Emotional Reassurance ── */
+.emotional-section {
+  text-align: center;
+  max-width: 800px;
+  margin: 0 auto;
+}
+
+/* ── Final CTA ── */
+.cta-panel {
+  background: var(--surface);
+  border-radius: var(--radius-xl);
+  padding: 80px 40px;
+  text-align: center;
+  border: 3px solid var(--border-color);
+  box-shadow: 8px 12px 0px var(--shadow-color);
+}
+
+/* ── Footer ── */
+.site-footer {
+  padding: 64px 0 40px;
+  text-align: center;
+  color: var(--muted);
+}
+
+.footer-links {
+  display: flex;
+  justify-content: center;
+  gap: 24px;
+  margin-bottom: 24px;
+  font-weight: 600;
+}
+
+.footer-links a:hover {
+  color: var(--ink);
+}
+
+.copyright { margin-bottom: 8px; }
+
+/* ── Utilities ── */
+.fade-in { opacity: 0; transform: translateY(20px); transition: opacity 0.6s ease, transform 0.6s ease; }
+.fade-in.visible { opacity: 1; transform: translateY(0); }

@@ -2,7 +2,7 @@ import * as Notifications from "expo-notifications";
 import Constants from "expo-constants";
 import { Platform } from "react-native";
 
-import { nudgeCopy, urgencyLabels } from "../constants/labels";
+import { urgencyLabels } from "../constants/labels";
 import type { Decision } from "../types/domain";
 
 Notifications.setNotificationHandler({
@@ -65,19 +65,6 @@ export async function scheduleUrgentDecisionNotifications(
     trigger: null,
   });
   ids.push(immediate);
-
-  const reminder = await Notifications.scheduleNotificationAsync({
-    content: {
-      title: "A verdict is needed",
-      body: nudgeCopy[Math.floor(Math.random() * nudgeCopy.length)],
-      data: { decisionId: decision.id, kind: "nudge" },
-    },
-    trigger: {
-      type: Notifications.SchedulableTriggerInputTypes.TIME_INTERVAL,
-      seconds: Math.max(60, gracePeriodMinutes * 60),
-    },
-  });
-  ids.push(reminder);
 
   return ids;
 }
