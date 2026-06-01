@@ -10,13 +10,19 @@ import {
   HistoryScreen,
   HomeScreen,
   JoinConnectionScreen,
+  MyPeopleScreen,
+  ProfileScreen,
+  SettingsScreen,
 } from "../AppScreens";
 import { setAppRepositoryForTesting, type AppRepository, type RemoteAppState } from "../../services/supabaseRepository";
 import { useAppStore } from "../../store/appStore";
 
-const aliceId = "00000000-0000-4000-8000-000000000001";
-const bobId = "00000000-0000-4000-8000-000000000002";
+const lisaId = "00000000-0000-4000-8000-000000000001";
+const noahId = "00000000-0000-4000-8000-000000000002";
+const charlieId = "00000000-0000-4000-8000-000000000003";
 const connectionId = "00000000-0000-4000-8000-000000000010";
+const secondConnectionId = "00000000-0000-4000-8000-000000000011";
+const expiredConnectionId = "00000000-0000-4000-8000-000000000012";
 const decisionId = "00000000-0000-4000-8000-000000000030";
 const optionBId = "00000000-0000-4000-8000-000000000032";
 
@@ -26,6 +32,7 @@ describe("simplified choice screens", () => {
     useAppStore.setState({
       authUserId: state.authUserId,
       profile: state.profile,
+      connections: state.connections,
       connectedProfile: state.connectedProfile,
       connection: state.connection,
       pendingConnectionRequests: state.pendingConnectionRequests,
@@ -43,7 +50,7 @@ describe("simplified choice screens", () => {
 
     render(<HomeScreen navigation={mockNavigation()} route={mockRoute("Home")} />);
 
-    expect(screen.getByText("HI ALICE")).toBeTruthy();
+    expect(screen.getByText("HI LISA")).toBeTruthy();
     expect(screen.getByText("Green sofa or Blue sofa?")).toBeTruthy();
     
     const scrollView = screen.getByTestId("screen-scroll-view");
@@ -74,11 +81,159 @@ describe("simplified choice screens", () => {
     expect(screen.getByLabelText("Settings")).toBeTruthy();
   });
 
+  test("settings opens profile editing", () => {
+    setAppRepositoryForTesting(fakeRepository(remoteState()));
+    const navigation = mockNavigation();
+
+    render(<SettingsScreen navigation={navigation} route={mockRoute("Settings")} />);
+
+    expect(screen.getByText("Profile")).toBeTruthy();
+    expect(screen.getByText("You show up as Lisa")).toBeTruthy();
+
+    fireEvent.press(screen.getByText("Profile"));
+
+    expect(navigation.navigate).toHaveBeenCalledWith("Profile");
+  });
+
+  test("settings opens my people", () => {
+    setAppRepositoryForTesting(fakeRepository(remoteState()));
+    const navigation = mockNavigation();
+
+    render(<SettingsScreen navigation={navigation} route={mockRoute("Settings")} />);
+
+    expect(screen.getByText("My people")).toBeTruthy();
+    expect(screen.getByText("Invite, rename, or remove your person")).toBeTruthy();
+
+    fireEvent.press(screen.getByText("My people"));
+
+    expect(navigation.navigate).toHaveBeenCalledWith("MyPeople");
+  });
+
+  test("profile screen saves a renamed display name", async () => {
+    const updatedState = {
+      ...remoteState(),
+      profile: {
+        ...remoteState().profile!,
+        displayName: "Alicia",
+        profileDisplayName: "Alicia",
+      },
+    };
+    const repository = fakeRepository(updatedState);
+    const navigation = mockNavigation();
+    const alertSpy = jest.spyOn(Alert, "alert").mockImplementation(() => undefined);
+    setAppRepositoryForTesting(repository);
+
+    render(<ProfileScreen navigation={navigation} route={mockRoute("Profile")} />);
+
+    fireEvent.changeText(screen.getByPlaceholderText("Mia"), "Alicia");
+    fireEvent.press(screen.getByText("Save profile"));
+
+    await waitFor(() => expect(repository.upsertProfile).toHaveBeenCalledWith(expect.objectContaining({
+      displayName: "Alicia",
+      profileDisplayName: "Alicia",
+    })));
+    expect(useAppStore.getState().profile?.displayName).toBe("Alicia");
+    expect(navigation.goBack).toHaveBeenCalled();
+
+    alertSpy.mockRestore();
+  });
+
+  test("my people separates add paths, active people, and unexpired pending invites", () => {
+    const state = remoteState();
+    const withPendingInvites: RemoteAppState = {
+      ...state,
+      connections: [
+        ...state.connections,
+        {
+          connection: {
+            ...state.connection!,
+            id: secondConnectionId,
+            inviteCode: "PENDING1",
+            inviteExpiresAt: "2999-05-25T10:00:00.000Z",
+          },
+          connectedProfile: null,
+        },
+        {
+          connection: {
+            ...state.connection!,
+            id: expiredConnectionId,
+            inviteCode: "EXPIRED1",
+            inviteExpiresAt: "2000-05-25T10:00:00.000Z",
+          },
+          connectedProfile: null,
+        },
+      ],
+    };
+    useAppStore.setState(withPendingInvites);
+    setAppRepositoryForTesting(fakeRepository(withPendingInvites));
+    const navigation = mockNavigation();
+
+    render(<MyPeopleScreen navigation={navigation} route={mockRoute("MyPeople")} />);
+
+    expect(screen.getByText("Add someone")).toBeTruthy();
+    expect(screen.getByText("Invite someone")).toBeTruthy();
+    expect(screen.getByText("Enter their code")).toBeTruthy();
+    expect(screen.getByText("Pending invites")).toBeTruthy();
+    expect(screen.getByText("PEND-ING1")).toBeTruthy();
+    expect(screen.queryByText("EXPI-RED1")).toBeNull();
+    expect(screen.getByText("Existing people")).toBeTruthy();
+    expect(screen.getByText("Noah")).toBeTruthy();
+    expect(screen.getByText("Save local name")).toBeTruthy();
+    expect(screen.getByText("Remove person")).toBeTruthy();
+
+    fireEvent.press(screen.getByText("Invite someone"));
+    expect(navigation.navigate).toHaveBeenCalledWith("ConnectionInvite");
+
+    fireEvent.press(screen.getByText("Enter their code"));
+    expect(navigation.navigate).toHaveBeenCalledWith("JoinConnection");
+  });
+
+  test("my people saves a local name for the selected connection", async () => {
+    const repository = fakeRepository(remoteState());
+    const alertSpy = jest.spyOn(Alert, "alert").mockImplementation(() => undefined);
+    setAppRepositoryForTesting(repository);
+
+    render(<MyPeopleScreen navigation={mockNavigation()} route={mockRoute("MyPeople")} />);
+
+    fireEvent.changeText(screen.getByPlaceholderText("Their name"), "Noahby");
+    fireEvent.press(screen.getByText("Save local name"));
+
+    await waitFor(() =>
+      expect(repository.updateConnectionDisplayName).toHaveBeenCalledWith({
+        connectionId,
+        targetUserId: noahId,
+        displayName: "Noahby",
+      }),
+    );
+
+    alertSpy.mockRestore();
+  });
+
+  test("my people removes a selected connection", async () => {
+    const repository = fakeRepository(remoteState());
+    const alertSpy = jest.spyOn(Alert, "alert").mockImplementation(() => undefined);
+    setAppRepositoryForTesting(repository);
+
+    render(<MyPeopleScreen navigation={mockNavigation()} route={mockRoute("MyPeople")} />);
+
+    fireEvent.press(screen.getByText("Remove person"));
+    const buttons = alertSpy.mock.calls[0][2] as Array<{ text: string; onPress?: () => Promise<void> | void }>;
+
+    await act(async () => {
+      await buttons.find((button) => button.text === "Remove")?.onPress?.();
+    });
+
+    await waitFor(() => expect(repository.stopConnection).toHaveBeenCalledWith(connectionId));
+
+    alertSpy.mockRestore();
+  });
+
   test("home still shows the creator flow without a connection", () => {
     const noConnection = {
       ...remoteState(),
       connectedProfile: null,
       connection: null,
+      connections: [],
       pendingConnectionRequests: [],
       decisions: [],
     };
@@ -88,7 +243,7 @@ describe("simplified choice screens", () => {
 
     render(<HomeScreen navigation={navigation} route={mockRoute("Home")} />);
 
-    expect(screen.getByText("HI ALICE")).toBeTruthy();
+    expect(screen.getByText("HI LISA")).toBeTruthy();
     expect(screen.getByLabelText("Create new decision")).toBeTruthy();
     expect(screen.getByText("No connection yet")).toBeTruthy();
 
@@ -103,7 +258,7 @@ describe("simplified choice screens", () => {
       response: {
         id: "00000000-0000-4000-8000-000000000040",
         decisionId,
-        responderId: bobId,
+        responderId: noahId,
         selectedOptionId: optionBId,
         responseType: "selected_option",
         comment: "This one",
@@ -117,7 +272,7 @@ describe("simplified choice screens", () => {
     render(<HistoryScreen navigation={mockNavigation()} route={mockRoute("History")} />);
 
     expect(screen.getByText("HISTORY")).toBeTruthy();
-    expect(screen.getByText("Bob chose Blue sofa")).toBeTruthy();
+    expect(screen.getByText("Noah chose Blue sofa")).toBeTruthy();
   });
 
   test("create choice sends only option names and an optional note", async () => {
@@ -134,6 +289,8 @@ describe("simplified choice screens", () => {
 
     await waitFor(() =>
       expect(repository.createDecisionWithOptions).toHaveBeenCalledWith({
+        connectionId,
+        assignedTo: noahId,
         note: "Need it today",
         options: [
           { label: "A", title: "Black chair", imageUrl: null, imagePath: null },
@@ -144,11 +301,47 @@ describe("simplified choice screens", () => {
     expect(navigation.replace).toHaveBeenCalledWith("DecisionDetail", { decisionId });
   });
 
+  test("create choice can target a second connection", async () => {
+    const state = remoteState();
+    const multiConnectionState: RemoteAppState = {
+      ...state,
+      connections: [
+        ...state.connections,
+        {
+          connection: {
+            ...state.connection!,
+            id: secondConnectionId,
+            inviteCode: "SECOND",
+          },
+          connectedProfile: { id: charlieId, displayName: "Charlie", avatarUrl: null },
+        },
+      ],
+    };
+    useAppStore.setState(multiConnectionState);
+    const repository = fakeRepository(multiConnectionState);
+    setAppRepositoryForTesting(repository);
+
+    render(<CreateDecisionScreen navigation={mockNavigation()} route={mockRoute("CreateDecision")} />);
+
+    fireEvent.press(screen.getByText("Charlie"));
+    fireEvent.changeText(screen.getByPlaceholderText("Sushi 🍣"), "Black chair");
+    fireEvent.changeText(screen.getByPlaceholderText("Thai 🍜"), "White chair");
+    fireEvent.press(screen.getByText("JUST CHOOSE"));
+
+    await waitFor(() =>
+      expect(repository.createDecisionWithOptions).toHaveBeenCalledWith(expect.objectContaining({
+        connectionId: secondConnectionId,
+        assignedTo: charlieId,
+      })),
+    );
+  });
+
   test("create choice asks for a connection only when submitting", async () => {
     const noConnection = {
       ...remoteState(),
       connectedProfile: null,
       connection: null,
+      connections: [],
       pendingConnectionRequests: [],
       decisions: [],
     };
@@ -193,7 +386,7 @@ describe("simplified choice screens", () => {
       />,
     );
 
-    expect(screen.getByText("Waiting for Bob")).toBeTruthy();
+    expect(screen.getByText("Waiting for Noah")).toBeTruthy();
     expect(screen.queryByText("Just choose")).toBeNull();
   });
 
@@ -203,7 +396,7 @@ describe("simplified choice screens", () => {
       response: {
         id: "00000000-0000-4000-8000-000000000040",
         decisionId,
-        responderId: bobId,
+        responderId: noahId,
         selectedOptionId: optionBId,
         responseType: "selected_option",
         comment: "This one",
@@ -244,10 +437,11 @@ describe("simplified choice screens", () => {
 
   test("join screen previews before accepting connection", async () => {
     useAppStore.setState({
-      authUserId: bobId,
-      profile: { id: bobId, displayName: "Bob", avatarUrl: null },
+      authUserId: noahId,
+      profile: { id: noahId, displayName: "Noah", avatarUrl: null },
       connectedProfile: null,
       connection: null,
+      connections: [],
       pendingConnectionRequests: [],
       decisions: [],
       connectionPreview: null,
@@ -264,7 +458,7 @@ describe("simplified choice screens", () => {
     fireEvent.changeText(screen.getByPlaceholderText("ABCD-EFGH-IJKL"), "testduo");
     fireEvent.press(screen.getByText("Preview connection"));
 
-    await waitFor(() => expect(screen.getByText("Connect with Alice?")).toBeTruthy());
+    await waitFor(() => expect(screen.getByText("Connect with Lisa?")).toBeTruthy());
     expect(repository.acceptConnectionInvite).not.toHaveBeenCalled();
     expect(navigation.replace).not.toHaveBeenCalled();
 
@@ -276,10 +470,11 @@ describe("simplified choice screens", () => {
 
   test("invalid invite does not navigate home", async () => {
     useAppStore.setState({
-      authUserId: bobId,
-      profile: { id: bobId, displayName: "Bob", avatarUrl: null },
+      authUserId: noahId,
+      profile: { id: noahId, displayName: "Noah", avatarUrl: null },
       connectedProfile: null,
       connection: null,
+      connections: [],
       pendingConnectionRequests: [],
       decisions: [],
       connectionPreview: null,
@@ -318,6 +513,7 @@ describe("simplified choice screens", () => {
         profile: null,
         connectedProfile: null,
         connection: null,
+        connections: [],
         pendingConnectionRequests: [],
         decisions: [],
       })),
@@ -327,6 +523,7 @@ describe("simplified choice screens", () => {
 
     render(<AuthScreen navigation={navigation} route={mockRoute("Auth")} />);
 
+    fireEvent.press(screen.getByText("Use email instead →"));
     fireEvent.changeText(screen.getByPlaceholderText("you@example.com"), "new@example.com");
     fireEvent.changeText(screen.getByPlaceholderText("Minimum 6 characters"), "mielad123");
     fireEvent.press(screen.getByText("Sign up with email"));
@@ -338,28 +535,45 @@ describe("simplified choice screens", () => {
 
 function remoteState(overrides: Partial<RemoteAppState["decisions"][number]> = {}): RemoteAppState {
   return {
-    authUserId: aliceId,
-    profile: { id: aliceId, displayName: "Alice", avatarUrl: null },
-    connectedProfile: { id: bobId, displayName: "Bob", avatarUrl: null },
+    authUserId: lisaId,
+    profile: { id: lisaId, displayName: "Lisa", avatarUrl: null },
+    connectedProfile: { id: noahId, displayName: "Noah", avatarUrl: null },
     connection: {
       id: connectionId,
       inviteCode: "TESTDUO",
       inviteExpiresAt: "2999-05-25T10:00:00.000Z",
-      createdBy: aliceId,
-      billingOwnerUserId: aliceId,
+      createdBy: lisaId,
+      billingOwnerUserId: lisaId,
       subscriptionStatus: "active",
       plan: "connection",
       premiumEnabled: true,
       subscriptionCurrentPeriodEnd: null,
       createdAt: "2026-05-25T09:00:00.000Z",
     },
+    connections: [
+      {
+        connection: {
+          id: connectionId,
+          inviteCode: "TESTDUO",
+          inviteExpiresAt: "2999-05-25T10:00:00.000Z",
+          createdBy: lisaId,
+          billingOwnerUserId: lisaId,
+          subscriptionStatus: "active",
+          plan: "connection",
+          premiumEnabled: true,
+          subscriptionCurrentPeriodEnd: null,
+          createdAt: "2026-05-25T09:00:00.000Z",
+        },
+        connectedProfile: { id: noahId, displayName: "Noah", avatarUrl: null },
+      },
+    ],
     pendingConnectionRequests: [],
     decisions: [
       {
         id: decisionId,
         connectionId,
-        createdBy: aliceId,
-        assignedTo: bobId,
+        createdBy: lisaId,
+        assignedTo: noahId,
         title: "Green sofa or Blue sofa?",
         note: null,
         status: "pending",
@@ -395,7 +609,7 @@ function fakeRepository(state: RemoteAppState): AppRepository {
   const response = decision.response ?? {
     id: "00000000-0000-4000-8000-000000000040",
     decisionId,
-    responderId: bobId,
+    responderId: noahId,
     selectedOptionId: optionBId,
     responseType: "selected_option" as const,
     comment: "This one",
@@ -407,7 +621,7 @@ function fakeRepository(state: RemoteAppState): AppRepository {
     signUpWithEmail: jest.fn(async () => ({
       userId: state.authUserId!,
       needsEmailConfirmation: false,
-      email: "alice@example.com",
+      email: "lisa@example.com",
     })),
     resendSignupConfirmation: jest.fn(async () => undefined),
     startAppleOAuthSignIn: jest.fn(async () => ({ url: "https://example.com/auth" })),
@@ -416,12 +630,13 @@ function fakeRepository(state: RemoteAppState): AppRepository {
     signInWithAppleIdentityToken: jest.fn(async () => ({ userId: state.authUserId! })),
     signInWithPhoneOtp: jest.fn(async () => undefined),
     verifyPhoneOtp: jest.fn(async () => ({ userId: state.authUserId! })),
+    updatePassword: jest.fn(async () => undefined),
     loadCurrentUserAppState: jest.fn(async () => state),
     upsertProfile: jest.fn(async () => state),
     createConnectionInvite: jest.fn(async () => state),
     previewConnectionInvite: jest.fn(async () => ({
       code: "TESTDUO",
-      inviterDisplayName: "Alice",
+      inviterDisplayName: "Lisa",
       expiresAt: "2999-05-25T10:00:00.000Z",
     })),
     acceptConnectionInvite: jest.fn(async () => state),
@@ -432,7 +647,7 @@ function fakeRepository(state: RemoteAppState): AppRepository {
     answerDecision: jest.fn(async () => response),
     savePushToken: jest.fn(async () => undefined),
     updateConnectionDisplayName: jest.fn(async () => state),
-    stopConnection: jest.fn(async () => ({ ...state, connection: null, connectedProfile: null, decisions: [] })),
+    stopConnection: jest.fn(async () => ({ ...state, connections: [], connection: null, connectedProfile: null, decisions: [] })),
     deleteDecision: jest.fn(async () => undefined),
     signOut: jest.fn(async () => undefined),
     deleteAccount: jest.fn(async () => undefined),

@@ -10,14 +10,17 @@ import {
   CreateProfileScreen,
   DecisionDetailScreen,
   DecisionResultScreen,
+  DeleteAccountScreen,
   HistoryScreen,
   SavedScreen,
   HomeScreen,
   JoinConnectionScreen,
-  LeaveConnectionConfirmScreen,
-  ManageConnectionsScreen,
+  MyPeopleScreen,
+  ProfileScreen,
+  NotificationsScreen,
   SafetyPrivacyScreen,
   SettingsScreen,
+  SupportScreen,
   ThemeSelectionScreen,
   SplashScreen,
 } from "../screens/AppScreens";
@@ -56,13 +59,12 @@ export function AppNavigator() {
       <Stack.Screen name="AnswerDecision" component={AnswerDecisionScreen} options={{ title: "Answer" }} />
       <Stack.Screen name="DecisionResult" component={DecisionResultScreen} options={{ title: "Result" }} />
       <Stack.Screen name="Settings" component={SettingsScreen} options={{ headerShown: false }} />
+      <Stack.Screen name="Profile" component={ProfileScreen} options={{ title: "Profile" }} />
+      <Stack.Screen name="Notifications" component={NotificationsScreen} options={{ title: "Notifications" }} />
+      <Stack.Screen name="DeleteAccount" component={DeleteAccountScreen} options={{ title: "Delete account" }} />
+      <Stack.Screen name="Support" component={SupportScreen} options={{ title: "Support" }} />
       <Stack.Screen name="SafetyPrivacy" component={SafetyPrivacyScreen} options={{ title: "Privacy" }} />
-      <Stack.Screen name="ManageConnections" component={ManageConnectionsScreen} options={{ title: "Manage connections" }} />
-      <Stack.Screen
-        name="LeaveConnectionConfirm"
-        component={LeaveConnectionConfirmScreen}
-        options={{ title: "Leave connection" }}
-      />
+      <Stack.Screen name="MyPeople" component={MyPeopleScreen} options={{ title: "My people" }} />
       <Stack.Screen name="ThemeSelection" component={ThemeSelectionScreen} options={{ title: "App Theme" }} />
     </Stack.Navigator>
   );

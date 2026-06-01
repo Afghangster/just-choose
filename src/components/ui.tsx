@@ -910,19 +910,21 @@ export function DecisionGrid({ options, activeId, onOptionSelect, viewOnly = fal
             ]}
           >
             {option.imageUrl ? (
-              <View style={gridStyles.imageArea}>
+              <View style={[gridStyles.imageArea, !option.title ? { flex: 1, height: undefined } : null]}>
                 <Image source={{ uri: option.imageUrl }} style={gridStyles.image} />
               </View>
             ) : null}
-            <View style={!option.imageUrl ? { flex: 1, justifyContent: "center" } : undefined}>
-              <Text style={[
-                gridStyles.optionTitle, 
-                { fontSize: (option.title || option.label).length > 20 ? 18 : 22 },
-                { color: isColorDark(cardColors[index % cardColors.length]) ? "#FFFFFF" : colors.ink }
-              ]} numberOfLines={3}>
-                {option.title || option.label}
-              </Text>
-            </View>
+            {!option.imageUrl || option.title ? (
+              <View style={!option.imageUrl ? { flex: 1, justifyContent: "center" } : undefined}>
+                <Text style={[
+                  gridStyles.optionTitle, 
+                  { fontSize: (option.title || option.label).length > 20 ? 18 : 22 },
+                  { color: isColorDark(cardColors[index % cardColors.length]) ? "#FFFFFF" : colors.ink }
+                ]} numberOfLines={3}>
+                  {option.title || (!option.imageUrl ? option.label : "")}
+                </Text>
+              </View>
+            ) : null}
           </Pressable>
         );
       })}
@@ -1110,19 +1112,21 @@ export function DecisionCarousel({ options, activeId, onOptionSelect, viewOnly =
               ]}
             >
               {option.imageUrl ? (
-                <View style={carouselStyles.imageArea}>
+                <View style={[carouselStyles.imageArea, !option.title ? { flex: 1, height: undefined } : null]}>
                   <Image source={{ uri: option.imageUrl }} style={carouselStyles.image} />
                 </View>
               ) : null}
-              <View style={!option.imageUrl ? { flex: 1, justifyContent: "center" } : undefined}>
-                <Text style={[
-                  carouselStyles.optionTitle, 
-                  { fontSize: (option.title || option.label).length > 20 ? 18 : 22 },
-                  { color: isColorDark(cardColors[index % cardColors.length]) ? "#FFFFFF" : colors.ink }
-                ]} numberOfLines={3}>
-                  {option.title || option.label}
-                </Text>
-              </View>
+              {!option.imageUrl || option.title ? (
+                <View style={!option.imageUrl ? { flex: 1, justifyContent: "center" } : undefined}>
+                  <Text style={[
+                    carouselStyles.optionTitle, 
+                    { fontSize: (option.title || option.label).length > 20 ? 18 : 22 },
+                    { color: isColorDark(cardColors[index % cardColors.length]) ? "#FFFFFF" : colors.ink }
+                  ]} numberOfLines={3}>
+                    {option.title || (!option.imageUrl ? option.label : "")}
+                  </Text>
+                </View>
+              ) : null}
             </Pressable>
           );
         })}
@@ -1145,7 +1149,10 @@ export function ExpandedCardModal({ option, color, visible, onClose }: { option:
     <Modal visible={visible} transparent animationType="fade" onRequestClose={onClose}>
       <Pressable style={{ flex: 1, backgroundColor: "rgba(24, 18, 15, 0.8)", padding: spacing.xl, justifyContent: "center", alignItems: "center" }} onPress={onClose}>
         <Pressable 
-          style={{ 
+          style={option.imageUrl ? {
+            width: "100%",
+            height: "80%",
+          } : { 
             backgroundColor: color, 
             borderColor: colors.ink,
             borderWidth: 4,
@@ -1161,20 +1168,23 @@ export function ExpandedCardModal({ option, color, visible, onClose }: { option:
           }}
           onPress={(e) => e.stopPropagation()}
         >
-          <ScrollView bounces={false} contentContainerStyle={{ gap: spacing.md, paddingVertical: spacing.md }} showsVerticalScrollIndicator={false}>
+          <ScrollView bounces={false} contentContainerStyle={{ gap: spacing.md, flexGrow: 1, ...(option.imageUrl ? {} : { paddingVertical: spacing.md }) }} showsVerticalScrollIndicator={false}>
             {option.imageUrl ? (
-              <View style={{ width: "100%", aspectRatio: 1, borderRadius: 24, overflow: "hidden", borderWidth: 3, borderColor: colors.ink, backgroundColor: "rgba(255, 255, 255, 0.66)" }}>
+              <View style={{ width: "100%", flex: 1, minHeight: 200, borderRadius: 24, overflow: "hidden" }}>
                 <Image source={{ uri: option.imageUrl }} style={{ width: "100%", height: "100%" }} />
               </View>
             ) : null}
-            <Text style={{
-              color: isColorDark(color) ? "#FFFFFF" : colors.ink,
-              fontSize: 32,
-              fontWeight: "900",
-              textAlign: "center",
-            }}>
-              {option.title || option.label}
-            </Text>
+            {!option.imageUrl || option.title ? (
+              <Text style={{
+                color: option.imageUrl ? "#FFFFFF" : (isColorDark(color) ? "#FFFFFF" : colors.ink),
+                fontSize: 32,
+                fontWeight: "900",
+                textAlign: "center",
+                ...(option.imageUrl ? { padding: spacing.md } : {})
+              }}>
+                {option.title || (!option.imageUrl ? option.label : "")}
+              </Text>
+            ) : null}
           </ScrollView>
         </Pressable>
       </Pressable>

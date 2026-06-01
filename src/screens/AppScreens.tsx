@@ -5,10 +5,11 @@ import { LinearGradient } from "expo-linear-gradient";
 import type { NativeStackScreenProps } from "@react-navigation/native-stack";
 import * as AppleAuthentication from "expo-apple-authentication";
 import * as Clipboard from "expo-clipboard";
+import Constants from "expo-constants";
 import * as Linking from "expo-linking";
 import * as WebBrowser from "expo-web-browser";
 import type { Edge } from "react-native-safe-area-context";
-import { Bookmark, CheckCircle2, ChevronRight, Clock, Copy, Home, LogOut, Mail, Palette, Plus, RefreshCw, Shield, SlidersHorizontal, Share2, ShieldCheck, Sparkles, UserRound, X, MoreHorizontal, Trash2 } from "lucide-react-native";
+import { Bell, Bookmark, Camera, CheckCircle2, ChevronRight, Clock, Copy, Home, KeyRound, LifeBuoy, LogOut, Mail, Palette, Plus, RefreshCw, SlidersHorizontal, Share2, ShieldCheck, Sparkles, Trash2, UserPlus, UserRound, X, MoreHorizontal } from "lucide-react-native";
 
 import {
   AnimatedResultCard,
@@ -36,12 +37,13 @@ import {
   signInWithEmail,
   signUpWithEmail,
   startGoogleSignIn,
+  updatePassword,
   upsertProfile,
 } from "../services/supabaseRepository";
 import { useAppStore } from "../store/appStore";
 import { useTheme, spacing, typography, palettes } from "../theme";
 import type { RootStackParamList } from "../navigation/types";
-import type { Connection, Decision, Gender, ResponseType } from "../types/domain";
+import type { Connection, ConnectionSummary, Decision, Gender, ResponseType } from "../types/domain";
 import { createDecisionSchema } from "../validation/decisionSchemas";
 
 type Props<T extends keyof RootStackParamList> = NativeStackScreenProps<
@@ -110,6 +112,13 @@ function normalizeInviteCodeInput(value: string) {
 function formatInviteCode(value: string) {
   const normalized = normalizeInviteCodeInput(value);
   return normalized.match(/.{1,4}/g)?.join("-") ?? "";
+}
+
+function hasUsableInviteCode(connection: Connection) {
+  return Boolean(
+    connection.inviteCode &&
+      (!connection.inviteExpiresAt || Date.parse(connection.inviteExpiresAt) > Date.now()),
+  );
 }
 
 function makeInviteLink(inviteCode: string) {
@@ -527,14 +536,20 @@ export function CreateProfileScreen({ navigation }: Props<"CreateProfile">) {
 export function ConnectionInviteScreen({ navigation }: Props<"ConnectionInvite">) {
   const connection = useAppStore((state) => state.connection);
   const connectedProfile = useAppStore((state) => state.connectedProfile);
+  const connections = useAppStore((state) => state.connections);
   const createRemoteConnectionInvite = useAppStore((state) => state.createRemoteConnectionInvite);
   const refreshRemoteState = useAppStore((state) => state.refreshRemoteState);
   const remoteStatus = useAppStore((state) => state.remoteStatus);
   const remoteError = useAppStore((state) => state.remoteError);
   const { colors } = useTheme();
   const uiStyles = useStyles();
-  const inviteCode = connection?.inviteCode ?? "";
+  const pendingInviteConnection = connections.find(
+    (item) => !item.connectedProfile && hasUsableInviteCode(item.connection),
+  );
+  const inviteConnection = pendingInviteConnection?.connection ?? (!connectedProfile ? connection : null);
+  const inviteCode = inviteConnection?.inviteCode ?? "";
   const inviteMessage = inviteCode ? makeInviteMessage(inviteCode) : "";
+  const connectedCount = connections.filter((item) => item.connectedProfile).length;
 
   async function copyInvite() {
     if (!inviteMessage) {
@@ -554,7 +569,7 @@ export function ConnectionInviteScreen({ navigation }: Props<"ConnectionInvite">
   return (
     <Screen
       title="Invite someone"
-      subtitle={connectedProfile ? "You are connected." : "One code. One connection. No awkward mystery links."}
+      subtitle={connectedCount > 0 ? "Add another connection." : "One code. One connection. No awkward mystery links."}
       onRefresh={() => refreshRemoteState().catch(() => undefined)}
       refreshing={remoteStatus === "loading"}
     >
@@ -563,65 +578,59 @@ export function ConnectionInviteScreen({ navigation }: Props<"ConnectionInvite">
           <Image source={brandIcon} style={uiStyles.brandIcon} />
           <View style={uiStyles.brandText}>
             <Text style={[typography.h2, { color: colors.ink }]}>
-              {connectedProfile ? `Connected with ${connectedProfile.displayName}` : "Invite code"}
+              {connectedCount > 0 ? `${connectedCount} active ${connectedCount === 1 ? "connection" : "connections"}` : "Invite code"}
             </Text>
             <Text style={uiStyles.small}>
-              {connectedProfile
-                ? "You can now send private choices to each other."
+              {connectedCount > 0
+                ? "Create another code or join someone else's invite."
                 : "They preview your name before accepting."}
             </Text>
           </View>
-          {connectedProfile ? <CheckCircle2 size={24} color={colors.green} /> : null}
+          {connectedCount > 0 ? <CheckCircle2 size={24} color={colors.green} /> : null}
         </View>
-        {!connectedProfile ? (
-          <>
-            <Text selectable style={[typography.title, { color: colors.teal }]}>
-              {inviteCode ? formatInviteCode(inviteCode) : "READY?"}
-            </Text>
-            <Text style={uiStyles.small}>
-              {inviteCode
-                ? "This one-time code expires in one hour. Generate a new code if it expires or was shared with the wrong person."
-                : "Tap New code when you are ready to invite someone."}
-            </Text>
-            {connection?.inviteExpiresAt ? (
-              <Text style={uiStyles.small}>
-                Expires at {new Date(connection.inviteExpiresAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}.
-              </Text>
-            ) : null}
-            <View style={uiStyles.inlineActions}>
-              <Button
-                label="Copy"
-                variant="secondary"
-                icon={<Copy size={18} color={colors.ink} />}
-                disabled={!inviteCode || remoteStatus === "loading"}
-                onPress={copyInvite}
-              />
-              <Button
-                label="Share"
-                variant="secondary"
-                icon={<Share2 size={18} color={colors.ink} />}
-                disabled={!inviteCode || remoteStatus === "loading"}
-                onPress={shareInvite}
-              />
-            </View>
-            <Button
-              label="New code"
-              variant="ghost"
-              icon={<RefreshCw size={18} color={colors.ink} />}
-              disabled={remoteStatus === "loading"}
-              onPress={() => createRemoteConnectionInvite().catch(() => undefined)}
-            />
-          </>
+        <Text selectable style={[typography.title, { color: colors.teal }]}>
+          {inviteCode ? formatInviteCode(inviteCode) : "READY?"}
+        </Text>
+        <Text style={uiStyles.small}>
+          {inviteCode
+            ? "This one-time code expires in one hour. Generate a new code if it expires or was shared with the wrong person."
+            : "Tap New code when you are ready to invite someone."}
+        </Text>
+        {inviteConnection?.inviteExpiresAt ? (
+          <Text style={uiStyles.small}>
+            Expires at {new Date(inviteConnection.inviteExpiresAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}.
+          </Text>
         ) : null}
+        <View style={uiStyles.inlineActions}>
+          <Button
+            label="Copy"
+            variant="secondary"
+            icon={<Copy size={18} color={colors.ink} />}
+            disabled={!inviteCode || remoteStatus === "loading"}
+            onPress={copyInvite}
+          />
+          <Button
+            label="Share"
+            variant="secondary"
+            icon={<Share2 size={18} color={colors.ink} />}
+            disabled={!inviteCode || remoteStatus === "loading"}
+            onPress={shareInvite}
+          />
+        </View>
+        <Button
+          label="New code"
+          variant="ghost"
+          icon={<RefreshCw size={18} color={colors.ink} />}
+          disabled={remoteStatus === "loading"}
+          onPress={() => createRemoteConnectionInvite().catch(() => undefined)}
+        />
         {remoteStatus === "loading" ? <Text style={uiStyles.small}>{inviteCode ? "Refreshing..." : "Creating invite..."}</Text> : null}
         {remoteError ? <Text style={uiStyles.small}>{remoteError}</Text> : null}
       </Card>
-      {connectedProfile ? (
+      {connectedCount > 0 ? (
         <Button label="Let's choose" onPress={() => navigation.replace("Home")} />
       ) : null}
-      {!connectedProfile ? (
-        <Button label="Join with an invite" variant="secondary" onPress={() => navigation.navigate("JoinConnection")} />
-      ) : null}
+      <Button label="Join with an invite" variant="secondary" onPress={() => navigation.navigate("JoinConnection")} />
     </Screen>
   );
 }
@@ -761,8 +770,8 @@ export function ConnectionRequestScreen({ navigation, route }: Props<"Connection
 
 export function HomeScreen({ navigation }: Props<"Home">) {
   const profile = useAppStore((state) => state.profile);
-  const connection = useAppStore((state) => state.connection);
   const connectedProfile = useAppStore((state) => state.connectedProfile);
+  const connections = useAppStore((state) => state.connections);
   const pendingConnectionRequests = useAppStore((state) => state.pendingConnectionRequests);
   const decisions = useAppStore((state) => state.decisions);
   const refreshRemoteState = useAppStore((state) => state.refreshRemoteState);
@@ -779,12 +788,14 @@ export function HomeScreen({ navigation }: Props<"Home">) {
   const { colors } = useTheme();
   const uiStyles = useStyles();
   const activePickCount = needsYourPick.length;
+  const connectedCount = connections.filter((item) => item.connectedProfile).length;
+  const nameForUser = (userId?: string | null) => getConnectionDisplayName(connections, userId, connectedProfile?.displayName);
 
   useEffect(() => {
-    if (profile && connection && connectedProfile) {
+    if (profile && connectedCount > 0) {
       registerCurrentDeviceForPush().catch(() => undefined);
     }
-  }, [connection, connectedProfile, profile, registerCurrentDeviceForPush]);
+  }, [connectedCount, profile, registerCurrentDeviceForPush]);
 
   useEffect(() => {
     const request = pendingConnectionRequests[0];
@@ -812,7 +823,7 @@ export function HomeScreen({ navigation }: Props<"Home">) {
       <Text style={[uiStyles.subtitle, { alignSelf: "flex-start", textAlign: "left" }]}>
         You've got {activePickCount} {activePickCount === 1 ? "pick" : "picks"} to make
       </Text>
-      {connection ? null : (
+      {connectedCount > 0 ? null : (
         <Card>
           <Text style={[typography.h2, { color: colors.ink }]}>No connection yet</Text>
           <Text style={uiStyles.small}>
@@ -830,7 +841,7 @@ export function HomeScreen({ navigation }: Props<"Home">) {
           <HomePickCard
             key={decision.id}
             decision={decision}
-            fromName={connectedProfile?.displayName ?? "Them"}
+            fromName={nameForUser(decision.createdBy)}
             onPress={() => navigation.navigate("AnswerDecision", { decisionId: decision.id })}
           />
         ))
@@ -844,7 +855,7 @@ export function HomeScreen({ navigation }: Props<"Home">) {
           <HomeWaitingCard
             key={decision.id}
             decision={decision}
-            assigneeName={connectedProfile?.displayName ?? "them"}
+            assigneeName={nameForUser(decision.assignedTo)}
             onPress={() => navigation.navigate("DecisionDetail", { decisionId: decision.id })}
             onCancel={async () => {
               try {
@@ -863,7 +874,7 @@ export function HomeScreen({ navigation }: Props<"Home">) {
           <LatestAnswerCard
             decision={latestAnswer}
             profileId={profile.id}
-            connectedProfileName={connectedProfile?.displayName ?? "They"}
+            connectedProfileName={nameForUser(latestAnswer.response?.responderId)}
             onPress={() => navigation.navigate("DecisionResult", { decisionId: latestAnswer.id })}
             onHistoryPress={() => navigation.navigate("History")}
           />
@@ -904,6 +915,17 @@ function getDecisionTime(decision: Decision) {
   return new Date(decision.answeredAt ?? decision.updatedAt ?? decision.createdAt).getTime();
 }
 
+function getConnectionDisplayName(
+  connections: Array<{ connectedProfile: { id: string; displayName: string } | null }>,
+  userId?: string | null,
+  fallback = "Them",
+) {
+  if (!userId) {
+    return fallback;
+  }
+  return connections.find((item) => item.connectedProfile?.id === userId)?.connectedProfile?.displayName ?? fallback;
+}
+
 function HomePickCard({
   decision,
   fromName,
@@ -924,8 +946,17 @@ function HomePickCard({
             <Pill tone="coral">YOUR TURN</Pill>
             <ChevronRight size={24} color={colors.ink} strokeWidth={3} />
           </View>
-          <Text style={[typography.h2, { color: colors.ink }]}>{decision.title}</Text>
+          <Text style={[typography.h2, { color: colors.ink }]}>{decision.note || decision.title}</Text>
           <Text style={uiStyles.small}>From {fromName} · {decision.options.length} options</Text>
+          
+          {decision.options.length > 0 && decision.options.every(o => o.imageUrl && !o.title) ? (
+            <View style={{ flexDirection: "row", gap: spacing.sm }}>
+              {decision.options.slice(0, 4).map(o => (
+                <Image key={o.id} source={{ uri: o.imageUrl! }} style={{ width: 48, height: 48, borderRadius: 8, borderWidth: 2, borderColor: colors.ink }} />
+              ))}
+            </View>
+          ) : null}
+
           <View style={{ alignItems: "flex-start" }}>
             <ActionPillButton label="Choose" tone="coral" onPress={onPress} />
           </View>
@@ -956,8 +987,17 @@ function HomeWaitingCard({
       <Card>
         <View style={{ gap: spacing.md }}>
           <Pill tone="amber">{waitingLabel}</Pill>
-          <Text style={[typography.h2, { color: colors.ink }]}>{decision.title}</Text>
+          <Text style={[typography.h2, { color: colors.ink }]}>{decision.note || decision.title}</Text>
           <Text style={uiStyles.small}>Sent {timeAgo(decision.createdAt)} · {decision.options.length} options</Text>
+
+          {decision.options.length > 0 && decision.options.every(o => o.imageUrl && !o.title) ? (
+            <View style={{ flexDirection: "row", gap: spacing.sm }}>
+              {decision.options.slice(0, 4).map(o => (
+                <Image key={o.id} source={{ uri: o.imageUrl! }} style={{ width: 48, height: 48, borderRadius: 8, borderWidth: 2, borderColor: colors.ink }} />
+              ))}
+            </View>
+          ) : null}
+
           <View style={{ flexDirection: "row", flexWrap: "wrap", gap: spacing.sm }}>
             <ActionPillButton 
               label="Cancel" 
@@ -1016,7 +1056,7 @@ function LatestAnswerCard({
         <Text style={[typography.h2, { color: colors.ink, fontSize: 18, lineHeight: 23 }]}>
           {responderName} chose {selected?.title ?? "an answer"}
         </Text>
-        <Text style={uiStyles.small} numberOfLines={1}>{decision.title}</Text>
+        <Text style={uiStyles.small} numberOfLines={1}>{decision.note || decision.title}</Text>
         <Pressable onPress={onHistoryPress} hitSlop={12}>
           <Text style={{ color: colors.coral, fontSize: 14, fontWeight: "900" }}>View history →</Text>
         </Pressable>
@@ -1109,18 +1149,21 @@ function CustomAlert({ visible, title, message, onCancel, onDelete, confirmText 
 export function HistoryScreen({ navigation }: Props<"History">) {
   const profile = useAppStore((state) => state.profile);
   const connectedProfile = useAppStore((state) => state.connectedProfile);
+  const connections = useAppStore((state) => state.connections);
   const decisions = useAppStore((state) => state.decisions);
   const refreshRemoteState = useAppStore((state) => state.refreshRemoteState);
   const remoteStatus = useAppStore((state) => state.remoteStatus);
   const remoteError = useAppStore((state) => state.remoteError);
-  const [dismissed, setDismissed] = useState<Set<string>>(new Set());
+  const dismissedDecisionIds = useAppStore((state) => state.dismissedDecisionIds);
+  const dismissDecision = useAppStore((state) => state.dismissDecision);
+  
   const [activeFilter, setActiveFilter] = useState<HistoryFilter>("All");
   const [itemToDelete, setItemToDelete] = useState<string | null>(null);
   const uiStyles = useStyles();
   const histStyles = useHistoryStyles();
   const { colors } = useTheme();
 
-  let visible = decisions.filter((decision) => isHistoryDecision(decision) && !dismissed.has(decision.id));
+  let visible = decisions.filter((decision) => isHistoryDecision(decision) && !dismissedDecisionIds.includes(decision.id));
 
   if (activeFilter === "Mine") {
     visible = visible.filter((decision) => decision.response?.responderId === profile?.id);
@@ -1130,13 +1173,13 @@ export function HistoryScreen({ navigation }: Props<"History">) {
     visible = visible.filter(isCancelledDecision);
   }
 
-  function dismiss(id: string) {
-    setDismissed((prev) => new Set(prev).add(id));
-  }
-
   function activityContent(decision: Decision): { text: React.ReactNode; statusPill: React.ReactNode; selectedTitle: string } {
     const status = getDecisionStatus(decision);
-    const connectedProfileName = connectedProfile?.displayName ?? "Bob";
+    const connectedProfileName = getConnectionDisplayName(
+      connections,
+      decision.response?.responderId ?? decision.assignedTo,
+      connectedProfile?.displayName ?? "Bob",
+    );
     const selectedOption = getSelectedOption(decision);
     const selectedTitle = selectedOption?.title ?? selectedOption?.label ?? "an answer";
 
@@ -1260,7 +1303,7 @@ export function HistoryScreen({ navigation }: Props<"History">) {
         onCancel={() => setItemToDelete(null)}
         onDelete={() => {
           if (itemToDelete) {
-            dismiss(itemToDelete);
+            dismissDecision(itemToDelete);
             setItemToDelete(null);
           }
         }}
@@ -1306,18 +1349,25 @@ export function SavedScreen({ navigation }: Props<"Saved">) {
 
 export function CreateDecisionScreen({ navigation }: Props<"CreateDecision">) {
   const profile = useAppStore((state) => state.profile);
-  const connectedProfile = useAppStore((state) => state.connectedProfile);
-  const connection = useAppStore((state) => state.connection);
+  const connections = useAppStore((state) => state.connections);
   const createRemoteDecision = useAppStore((state) => state.createRemoteDecision);
   const note = useAppStore((state) => state.draftNote);
   const setNote = useAppStore((state) => state.setDraftNote);
   const options = useAppStore((state) => state.draftOptions);
   const setOptions = useAppStore((state) => state.setDraftOptions);
   const clearDraft = useAppStore((state) => state.clearDraft);
-  const [showNote, setShowNote] = useState(false);
   const [busy, setBusy] = useState(false);
+  const connectionTargets = connections.filter((item) => item.connectedProfile);
+  const [selectedConnectionId, setSelectedConnectionId] = useState<string | null>(connectionTargets[0]?.connection.id ?? null);
+  const selectedConnection = connectionTargets.find((item) => item.connection.id === selectedConnectionId) ?? connectionTargets[0] ?? null;
   const { colors } = useTheme();
   const uiStyles = useStyles();
+
+  useEffect(() => {
+    if (!selectedConnectionId && connectionTargets[0]) {
+      setSelectedConnectionId(connectionTargets[0].connection.id);
+    }
+  }, [connectionTargets, selectedConnectionId]);
 
   function updateOption(index: number, patch: Partial<(typeof options)[number]>) {
     setOptions((current) =>
@@ -1359,7 +1409,7 @@ export function CreateDecisionScreen({ navigation }: Props<"CreateDecision">) {
       return;
     }
 
-    if (!connection || !connectedProfile) {
+    if (!selectedConnection?.connectedProfile) {
       Alert.alert("Connection needed", "Set up a connection before submitting. Your draft will stay here while you do that.", [
         { text: "Keep editing", style: "cancel" },
         { text: "Set up connection", onPress: () => navigation.navigate("ConnectionInvite") },
@@ -1370,6 +1420,8 @@ export function CreateDecisionScreen({ navigation }: Props<"CreateDecision">) {
     setBusy(true);
     try {
       const decision = await createRemoteDecision({
+        connectionId: selectedConnection.connection.id,
+        assignedTo: selectedConnection.connectedProfile.id,
         note: parsed.data.note,
         options: parsed.data.options.map((option, index) => ({
           label: String.fromCharCode(65 + index),
@@ -1395,6 +1447,18 @@ export function CreateDecisionScreen({ navigation }: Props<"CreateDecision">) {
         placeholder="Where should we eat tonight?"
       />
 
+      {connectionTargets.length > 1 ? (
+        <Segment
+          label="Send to"
+          value={selectedConnection?.connection.id ?? connectionTargets[0].connection.id}
+          options={connectionTargets.map((item) => ({
+            value: item.connection.id,
+            label: item.connectedProfile?.displayName ?? "Connection",
+          }))}
+          onChange={setSelectedConnectionId}
+        />
+      ) : null}
+
       <AttachmentCarousel
         options={options}
         onAddImage={addImage}
@@ -1414,6 +1478,7 @@ export function DecisionDetailScreen({ route, navigation }: Props<"DecisionDetai
   const decision = useDecision(route.params.decisionId);
   const profile = useAppStore((state) => state.profile);
   const connectedProfile = useAppStore((state) => state.connectedProfile);
+  const connections = useAppStore((state) => state.connections);
   const savedDecisionIds = useAppStore((state) => state.savedDecisionIds);
   const toggleSavedDecision = useAppStore((state) => state.toggleSavedDecision);
   const { colors } = useTheme();
@@ -1426,6 +1491,7 @@ export function DecisionDetailScreen({ route, navigation }: Props<"DecisionDetai
 
   const canAnswer = profile?.id === decision.assignedTo && decision.status === "pending";
   const isCreator = profile?.id === decision.createdBy;
+  const assigneeName = getConnectionDisplayName(connections, decision.assignedTo, connectedProfile?.displayName ?? "connection");
 
   return (
     <Screen 
@@ -1436,7 +1502,7 @@ export function DecisionDetailScreen({ route, navigation }: Props<"DecisionDetai
           <Button label="Just choose" onPress={() => navigation.navigate("AnswerDecision", { decisionId: decision.id })} />
         ) : isCreator ? (
           <Pill tone="amber" style={{ alignSelf: "center", marginVertical: 16 }}>
-            Waiting for {connectedProfile?.displayName ?? "connection"}
+            Waiting for {assigneeName}
           </Pill>
         ) : null
       }
@@ -1584,29 +1650,20 @@ export function DecisionResultScreen({ route, navigation }: Props<"DecisionResul
 
 export function SettingsScreen({ navigation }: Props<"Settings">) {
   const { colors, themeName } = useTheme();
-  const connection = useAppStore((state) => state.connection);
+  const profile = useAppStore((state) => state.profile);
+  const connections = useAppStore((state) => state.connections);
   const signOut = useAppStore((state) => state.signOut);
   const formattedThemeName = themeName.replace(/([A-Z])/g, ' $1').replace(/^./, str => str.toUpperCase());
+  const connectedCount = connections.filter((item) => item.connectedProfile).length;
   return (
     <Screen footer={<FloatingTabBar active="settings" navigation={navigation} />}>
       <ScreenHeader title="Settings" />
+      <SettingsSection title="Account" />
       <SettingsRow
-        title="App Theme"
-        subtitle={formattedThemeName}
-        icon={<Palette size={24} color={colors.teal} strokeWidth={3} />}
-        onPress={() => navigation.navigate("ThemeSelection")}
-      />
-      <SettingsRow
-        title="Safety and privacy"
-        subtitle="What Just Choose stores"
-        icon={<ShieldCheck size={24} color={colors.teal} strokeWidth={3} />}
-        onPress={() => navigation.navigate("SafetyPrivacy")}
-      />
-      <SettingsRow
-        title="Manage connections"
-        subtitle="Rename or stop your connections"
-        icon={<UserRound size={24} color={colors.coral} strokeWidth={3} />}
-        onPress={() => navigation.navigate("ManageConnections")}
+        title="Profile"
+        subtitle={profile?.displayName ? `You show up as ${profile.displayName}` : "Name, photo, and password"}
+        icon={<UserRound size={24} color={colors.teal} strokeWidth={3} />}
+        onPress={() => navigation.navigate("Profile")}
       />
       <SettingsRow
         title="Log out"
@@ -1635,6 +1692,336 @@ export function SettingsScreen({ navigation }: Props<"Settings">) {
           );
         }}
       />
+
+      <SettingsSection title="Connections" />
+      <SettingsRow
+        title="My people"
+        subtitle={connectedCount > 0 ? `Invite, rename, or remove ${connectedCount === 1 ? "your person" : "people"}` : "Invite someone you trust"}
+        icon={<UserRound size={24} color={colors.coral} strokeWidth={3} />}
+        onPress={() => navigation.navigate("MyPeople")}
+      />
+
+      <SettingsSection title="App" />
+      <SettingsRow
+        title="App Theme"
+        subtitle={formattedThemeName}
+        icon={<Palette size={24} color={colors.teal} strokeWidth={3} />}
+        onPress={() => navigation.navigate("ThemeSelection")}
+      />
+      <SettingsRow
+        title="Notifications"
+        subtitle="Turn on choice alerts"
+        icon={<Bell size={24} color={colors.teal} strokeWidth={3} />}
+        onPress={() => navigation.navigate("Notifications")}
+      />
+
+      <SettingsSection title="Privacy & Safety" />
+      <SettingsRow
+        title="Safety and privacy"
+        subtitle="What Just Choose stores"
+        icon={<ShieldCheck size={24} color={colors.teal} strokeWidth={3} />}
+        onPress={() => navigation.navigate("SafetyPrivacy")}
+      />
+      <SettingsRow
+        title="Delete account"
+        subtitle="Permanently erase your account"
+        icon={<Trash2 size={24} color={colors.danger} strokeWidth={3} />}
+        titleColor={colors.danger}
+        onPress={() => navigation.navigate("DeleteAccount")}
+      />
+
+      <SettingsSection title="Support" />
+      <SettingsRow
+        title="Help, feedback, and privacy"
+        subtitle={`Questions, ideas, and app info · v${Constants.expoConfig?.version ?? "1.0.0"}`}
+        icon={<LifeBuoy size={24} color={colors.teal} strokeWidth={3} />}
+        onPress={() => navigation.navigate("Support")}
+      />
+    </Screen>
+  );
+}
+
+export function ProfileScreen({ navigation }: Props<"Profile">) {
+  const { colors } = useTheme();
+  const uiStyles = useStyles();
+  const profile = useAppStore((state) => state.profile);
+  const applyRemoteState = useAppStore((state) => state.applyRemoteState);
+  const [displayName, setDisplayName] = useState(profile?.profileDisplayName ?? profile?.displayName ?? "");
+  const [profileImage, setProfileImage] = useState<{ imageUrl: string | null; imagePath: string | null }>({
+    imageUrl: profile?.avatarUrl ?? null,
+    imagePath: profile?.avatarPath ?? null,
+  });
+  const [newPassword, setNewPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
+  const [busy, setBusy] = useState(false);
+  const [passwordBusy, setPasswordBusy] = useState(false);
+  const [imageBusy, setImageBusy] = useState(false);
+  const trimmedDisplayName = displayName.trim();
+  const currentDisplayName = profile?.profileDisplayName ?? profile?.displayName ?? "";
+
+  useEffect(() => {
+    setDisplayName(profile?.profileDisplayName ?? profile?.displayName ?? "");
+    setProfileImage({
+      imageUrl: profile?.avatarUrl ?? null,
+      imagePath: profile?.avatarPath ?? null,
+    });
+  }, [profile?.avatarPath, profile?.avatarUrl, profile?.displayName, profile?.profileDisplayName]);
+
+  async function chooseProfileImage() {
+    if (!profile) {
+      Alert.alert("Profile needed", "Sign in before editing your profile.");
+      return;
+    }
+    const localUri = await chooseDecisionImage();
+    if (!localUri) {
+      return;
+    }
+    setImageBusy(true);
+    try {
+      const uploaded = await uploadAvatarImage(profile.id, localUri);
+      setProfileImage(uploaded);
+    } catch (error) {
+      Alert.alert("Photo issue", getErrorMessage(error, "Unable to upload your profile photo."));
+    } finally {
+      setImageBusy(false);
+    }
+  }
+
+  async function saveProfile() {
+    if (!profile) {
+      Alert.alert("Profile needed", "Sign in before editing your profile.");
+      return;
+    }
+    if (!trimmedDisplayName) {
+      Alert.alert("Name needed", "Enter a display name.");
+      return;
+    }
+    setBusy(true);
+    try {
+      const remoteState = await upsertProfile({
+        ...profile,
+        displayName: trimmedDisplayName,
+        profileDisplayName: trimmedDisplayName,
+        avatarUrl: profileImage.imageUrl,
+        avatarPath: profileImage.imagePath,
+      });
+      applyRemoteState(remoteState);
+      Alert.alert("Profile updated", "Your display name has been saved.");
+      navigation.goBack();
+    } catch (error) {
+      Alert.alert("Profile issue", getErrorMessage(error, "Try again."));
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function savePassword() {
+    if (newPassword.length < 6) {
+      Alert.alert("Password too short", "Use at least 6 characters.");
+      return;
+    }
+    if (newPassword !== confirmPassword) {
+      Alert.alert("Passwords do not match", "Retype the same password in both fields.");
+      return;
+    }
+    setPasswordBusy(true);
+    try {
+      await updatePassword(newPassword);
+      setNewPassword("");
+      setConfirmPassword("");
+      Alert.alert("Password updated", "Your email password has been changed.");
+    } catch (error) {
+      Alert.alert("Password issue", getErrorMessage(error, "Unable to update your password."));
+    } finally {
+      setPasswordBusy(false);
+    }
+  }
+
+  return (
+    <Screen safeAreaEdges={nativeHeaderScreenEdges}>
+      <Card>
+        <View style={{ alignItems: "center", gap: spacing.sm }}>
+          <Pressable onPress={chooseProfileImage} disabled={imageBusy} style={{ alignItems: "center", gap: spacing.xs }}>
+            <Avatar name={currentDisplayName || "You"} size={78} imageUrl={profileImage.imageUrl} />
+            <View style={{ alignItems: "center", flexDirection: "row", gap: spacing.xs }}>
+              <Camera size={16} color={colors.teal} strokeWidth={3} />
+              <Text style={{ color: colors.teal, fontSize: 13, fontWeight: "900" }}>
+                {imageBusy ? "Uploading..." : "Change photo"}
+              </Text>
+            </View>
+          </Pressable>
+          <Text style={[typography.h2, { color: colors.ink }]}>{currentDisplayName || "Your profile"}</Text>
+          <Text style={[uiStyles.small, { textAlign: "center" }]}>
+            This name and photo are what your connections see when you send and answer choices.
+          </Text>
+        </View>
+      </Card>
+      <Card>
+        <View style={{ gap: spacing.md }}>
+          <TextField
+            label="Display name"
+            value={displayName}
+            onChangeText={setDisplayName}
+            placeholder="Mia"
+          />
+          <Button
+            label={busy ? "Saving..." : "Save profile"}
+            disabled={
+              busy ||
+              imageBusy ||
+              !trimmedDisplayName ||
+              (trimmedDisplayName === currentDisplayName &&
+                profileImage.imageUrl === (profile?.avatarUrl ?? null) &&
+                profileImage.imagePath === (profile?.avatarPath ?? null))
+            }
+            onPress={saveProfile}
+          />
+        </View>
+      </Card>
+      <Card>
+        <View style={{ gap: spacing.md }}>
+          <View style={{ flexDirection: "row", alignItems: "center", gap: spacing.sm }}>
+            <KeyRound size={22} color={colors.teal} strokeWidth={3} />
+            <Text style={[typography.h2, { color: colors.ink }]}>Email password</Text>
+          </View>
+          <Text style={uiStyles.small}>If you signed up with email, you can change that password here.</Text>
+          <TextField
+            label="New password"
+            value={newPassword}
+            onChangeText={setNewPassword}
+            placeholder="Minimum 6 characters"
+            secureTextEntry
+          />
+          <TextField
+            label="Confirm password"
+            value={confirmPassword}
+            onChangeText={setConfirmPassword}
+            placeholder="Retype new password"
+            secureTextEntry
+          />
+          <Button
+            label={passwordBusy ? "Saving..." : "Change password"}
+            disabled={passwordBusy || newPassword.length < 6 || confirmPassword.length < 6}
+            onPress={savePassword}
+          />
+        </View>
+      </Card>
+    </Screen>
+  );
+}
+
+export function NotificationsScreen() {
+  const { colors } = useTheme();
+  const uiStyles = useStyles();
+  const registerCurrentDeviceForPush = useAppStore((state) => state.registerCurrentDeviceForPush);
+  const remoteStatus = useAppStore((state) => state.remoteStatus);
+
+  return (
+    <Screen safeAreaEdges={nativeHeaderScreenEdges}>
+      <Card>
+        <Text style={[typography.h2, { color: colors.ink }]}>Push notifications</Text>
+        <Text style={uiStyles.small}>
+          Just Choose uses push notifications for new choices and answer updates when your device allows them.
+        </Text>
+        <Button
+          label={remoteStatus === "loading" ? "Checking..." : "Enable notifications"}
+          disabled={remoteStatus === "loading"}
+          onPress={async () => {
+            try {
+              const registered = await registerCurrentDeviceForPush();
+              Alert.alert(
+                registered ? "Notifications are on" : "Notifications not enabled",
+                registered
+                  ? "This device will receive Just Choose alerts."
+                  : "Allow notifications in system settings, then try again.",
+              );
+            } catch (error) {
+              Alert.alert("Notification issue", getErrorMessage(error, "Unable to update notifications."));
+            }
+          }}
+        />
+      </Card>
+    </Screen>
+  );
+}
+
+export function DeleteAccountScreen({ navigation }: Props<"DeleteAccount">) {
+  const deleteAccount = useAppStore((state) => state.deleteAccount);
+  const remoteStatus = useAppStore((state) => state.remoteStatus);
+  const { colors } = useTheme();
+  const uiStyles = useStyles();
+
+  function confirmDelete() {
+    Alert.alert(
+      "Delete account?",
+      "This permanently erases your profile, connections, choices, answers, and uploaded account images.",
+      [
+        { text: "Cancel", style: "cancel" },
+        {
+          text: "Delete account",
+          style: "destructive",
+          onPress: async () => {
+            try {
+              await deleteAccount();
+              navigation.replace("Auth");
+            } catch (error) {
+              Alert.alert("Delete issue", getErrorMessage(error, "Unable to delete account."));
+            }
+          },
+        },
+      ],
+    );
+  }
+
+  return (
+    <Screen safeAreaEdges={nativeHeaderScreenEdges}>
+      <Card>
+        <Text style={[typography.h2, { color: colors.danger }]}>Permanent deletion</Text>
+        <Text style={uiStyles.small}>
+          This cannot be undone. Your account data is removed from Just Choose and you will be signed out.
+        </Text>
+        <Button
+          label={remoteStatus === "loading" ? "Deleting..." : "Delete account"}
+          variant="danger"
+          disabled={remoteStatus === "loading"}
+          onPress={confirmDelete}
+        />
+      </Card>
+    </Screen>
+  );
+}
+
+export function SupportScreen() {
+  const { colors } = useTheme();
+  const uiStyles = useStyles();
+  const version = Constants.expoConfig?.version ?? "1.0.0";
+  const contactUrl = "mailto:support@justchoooose.com?subject=Just%20Choose%20support";
+  const feedbackUrl = "mailto:support@justchoooose.com?subject=Just%20Choose%20feedback";
+
+  return (
+    <Screen safeAreaEdges={nativeHeaderScreenEdges}>
+      <SettingsRow
+        title="Contact support"
+        subtitle="Email the Just Choose team"
+        icon={<Mail size={24} color={colors.teal} strokeWidth={3} />}
+        onPress={() => Linking.openURL(contactUrl)}
+      />
+      <SettingsRow
+        title="Send feedback"
+        subtitle="Share what feels missing"
+        icon={<Sparkles size={24} color={colors.coral} strokeWidth={3} />}
+        onPress={() => Linking.openURL(feedbackUrl)}
+      />
+      <SettingsRow
+        title="Privacy policy"
+        subtitle="Open justchoooose.com/privacy"
+        icon={<ShieldCheck size={24} color={colors.teal} strokeWidth={3} />}
+        onPress={() => Linking.openURL("https://justchoooose.com/privacy.html")}
+      />
+      <Card>
+        <Text style={[typography.h2, { color: colors.ink }]}>App version</Text>
+        <Text style={uiStyles.small}>Just Choose {version}</Text>
+      </Card>
     </Screen>
   );
 }
@@ -1709,28 +2096,6 @@ export function ThemeSelectionScreen({ navigation }: Props<"ThemeSelection">) {
 
 export function SafetyPrivacyScreen() {
   const { colors } = useTheme();
-  const deleteAccount = useAppStore((state) => state.deleteAccount);
-
-  const confirmDelete = () => {
-    Alert.alert(
-      "Delete Account?",
-      "This action is permanent. All your data, connections, and choices will be immediately erased.",
-      [
-        { text: "Cancel", style: "cancel" },
-        { 
-          text: "Delete My Account", 
-          style: "destructive",
-          onPress: async () => {
-            try {
-              await deleteAccount();
-            } catch (error) {
-              Alert.alert("Error", error instanceof Error ? error.message : "Unable to delete account");
-            }
-          }
-        }
-      ]
-    );
-  };
 
   return (
     <Screen safeAreaEdges={nativeHeaderScreenEdges}>
@@ -1750,58 +2115,135 @@ export function SafetyPrivacyScreen() {
           • No Selling Data: Your data stays between you and your connection.
         </Text>
       </Card>
-
-      <Card>
-        <Text style={[typography.h2, { color: colors.ink }]}>Account Management</Text>
-        <Text style={[typography.body, { color: colors.ink, marginBottom: 16 }]}>
-          You have the right to delete your account and all associated data at any time. This action cannot be undone.
-        </Text>
-        <Button 
-          label="Delete My Account" 
-          variant="danger" 
-          onPress={confirmDelete}
-        />
-      </Card>
     </Screen>
   );
 }
 
-export function LeaveConnectionConfirmScreen({ navigation }: Props<"LeaveConnectionConfirm">) {
+export function MyPeopleScreen({ navigation }: Props<"MyPeople">) {
+  const connections = useAppStore((state) => state.connections);
+  const activeConnections = connections.filter((item) => item.connectedProfile);
+  const pendingInvites = connections.filter(
+    (item) => !item.connectedProfile && hasUsableInviteCode(item.connection),
+  );
   const leaveConnection = useAppStore((state) => state.leaveConnection);
+  const remoteStatus = useAppStore((state) => state.remoteStatus);
   const { colors } = useTheme();
+  const uiStyles = useStyles();
+
+  async function copyPendingInvite(inviteCode: string) {
+    await Clipboard.setStringAsync(makeInviteMessage(inviteCode));
+    Alert.alert("Invite copied", "The code and app link are ready to paste.");
+  }
+
+  async function sharePendingInvite(inviteCode: string) {
+    await Share.share({ message: makeInviteMessage(inviteCode) });
+  }
+
+  function cancelPendingInvite(connectionId: string) {
+    Alert.alert("Cancel invite?", "This code will stop working.", [
+      { text: "Keep it", style: "cancel" },
+      {
+        text: "Cancel invite",
+        style: "destructive",
+        onPress: async () => {
+          try {
+            await leaveConnection(connectionId);
+          } catch (error) {
+            Alert.alert("Invite issue", getErrorMessage(error, "Unable to cancel this invite."));
+          }
+        },
+      },
+    ]);
+  }
 
   return (
-    <Screen title="Leave connection">
+    <Screen safeAreaEdges={nativeHeaderScreenEdges}>
       <Card>
-        <Text style={[typography.body, { color: colors.ink }]}>This removes the connection from this device.</Text>
-        <Button
-          label="Leave connection"
-          variant="danger"
-          onPress={async () => {
-            try {
-              await leaveConnection();
-              navigation.replace("ConnectionInvite");
-            } catch (error) {
-              Alert.alert("Connection issue", getErrorMessage(error, "Unable to stop connection."));
-            }
-          }}
-        />
-        <Button label="Cancel" variant="secondary" onPress={() => navigation.goBack()} />
+        <Text style={[typography.h2, { color: colors.ink }]}>Add someone</Text>
+        <Text style={uiStyles.small}>Invite a person you trust, or enter a code they sent you.</Text>
+        <View style={{ gap: spacing.sm }}>
+          <Button
+            label="Invite someone"
+            icon={<UserPlus size={18} color="#FFFFFF" />}
+            onPress={() => navigation.navigate("ConnectionInvite")}
+          />
+          <Button
+            label="Enter their code"
+            variant="secondary"
+            icon={<KeyRound size={18} color={colors.ink} />}
+            onPress={() => navigation.navigate("JoinConnection")}
+          />
+        </View>
       </Card>
+
+      {pendingInvites.length > 0 ? (
+        <>
+          <SectionHeader title="Pending invites" count={pendingInvites.length} />
+          {pendingInvites.map((item) => (
+            <Card key={item.connection.id}>
+              <Text selectable style={[typography.h2, { color: colors.teal }]}>
+                {formatInviteCode(item.connection.inviteCode)}
+              </Text>
+              <Text style={uiStyles.small}>
+                Waiting for someone to join. Expires {item.connection.inviteExpiresAt ? new Date(item.connection.inviteExpiresAt).toLocaleString() : "soon"}.
+              </Text>
+              <View style={uiStyles.inlineActions}>
+                <Button
+                  label="Copy"
+                  variant="secondary"
+                  disabled={remoteStatus === "loading"}
+                  icon={<Copy size={18} color={colors.ink} />}
+                  onPress={() => copyPendingInvite(item.connection.inviteCode)}
+                />
+                <Button
+                  label="Share"
+                  variant="secondary"
+                  disabled={remoteStatus === "loading"}
+                  icon={<Share2 size={18} color={colors.ink} />}
+                  onPress={() => sharePendingInvite(item.connection.inviteCode)}
+                />
+              </View>
+              <Button
+                label={remoteStatus === "loading" ? "Cancelling..." : "Cancel invite"}
+                variant="ghost"
+                disabled={remoteStatus === "loading"}
+                onPress={() => cancelPendingInvite(item.connection.id)}
+              />
+            </Card>
+          ))}
+        </>
+      ) : null}
+
+      <SectionHeader title="Existing people" count={activeConnections.length} />
+      {activeConnections.length === 0 ? (
+        <EmptyState title="No people yet" body="Invite someone or enter their code to start sending choices." />
+      ) : (
+        activeConnections.map((item) =>
+          item.connectedProfile ? (
+            <PersonCard
+              key={item.connection.id}
+              connectionId={item.connection.id}
+              connectedProfile={item.connectedProfile}
+            />
+          ) : null,
+        )
+      )}
     </Screen>
   );
 }
 
-export function ManageConnectionsScreen({ navigation }: Props<"ManageConnections">) {
-  const connection = useAppStore((state) => state.connection);
-  const connectedProfile = useAppStore((state) => state.connectedProfile);
-  const authUserId = useAppStore((state) => state.authUserId);
+function PersonCard({
+  connectionId,
+  connectedProfile,
+}: {
+  connectionId: string;
+  connectedProfile: NonNullable<ConnectionSummary["connectedProfile"]>;
+}) {
   const updateConnectionAlias = useAppStore((state) => state.updateConnectionAlias);
   const leaveConnection = useAppStore((state) => state.leaveConnection);
   const remoteStatus = useAppStore((state) => state.remoteStatus);
   const remoteError = useAppStore((state) => state.remoteError);
   const [displayName, setDisplayName] = useState(connectedProfile?.displayName ?? "");
-  const [isUploading, setIsUploading] = useState(false);
   const { colors } = useTheme();
   const uiStyles = useStyles();
 
@@ -1809,32 +2251,9 @@ export function ManageConnectionsScreen({ navigation }: Props<"ManageConnections
     setDisplayName(connectedProfile?.displayName ?? "");
   }, [connectedProfile?.displayName]);
 
-  if (!connection || !connectedProfile) {
-    return (
-      <Screen safeAreaEdges={nativeHeaderScreenEdges}>
-        <Button label="Create invite" onPress={() => navigation.replace("ConnectionInvite")} />
-      </Screen>
-    );
-  }
-
-  async function handleAvatarPress() {
-    if (!authUserId) return;
-    const localUri = await chooseDecisionImage();
-    if (!localUri) return;
-    setIsUploading(true);
-    try {
-      const uploaded = await uploadAvatarImage(authUserId, localUri);
-      await updateConnectionAlias(displayName, uploaded.imageUrl, uploaded.imagePath);
-    } catch (error) {
-      Alert.alert("Upload issue", getErrorMessage(error, "Unable to upload avatar."));
-    } finally {
-      setIsUploading(false);
-    }
-  }
-
   async function saveDisplayName() {
     try {
-      await updateConnectionAlias(displayName);
+      await updateConnectionAlias(displayName, connectionId, connectedProfile.id);
       Alert.alert("Connection updated", "This name is only visible to you.");
     } catch (error) {
       Alert.alert("Connection issue", getErrorMessage(error, "Unable to update connection."));
@@ -1844,18 +2263,17 @@ export function ManageConnectionsScreen({ navigation }: Props<"ManageConnections
   function confirmStopConnection() {
     Alert.alert(
       "Stop connection?",
-      "This disconnects both people and revokes pending invite codes for this connection.",
+      `Remove ${connectedProfile.displayName} from your people? This disconnects both of you.`,
       [
         { text: "Cancel", style: "cancel" },
         {
-          text: "Stop connection",
+          text: "Remove",
           style: "destructive",
           onPress: async () => {
             try {
-              await leaveConnection();
-              navigation.replace("ConnectionInvite");
+              await leaveConnection(connectionId);
             } catch (error) {
-              Alert.alert("Connection issue", getErrorMessage(error, "Unable to stop connection."));
+              Alert.alert("Connection issue", getErrorMessage(error, "Unable to remove this person."));
             }
           },
         },
@@ -1864,45 +2282,39 @@ export function ManageConnectionsScreen({ navigation }: Props<"ManageConnections
   }
 
   return (
-    <Screen safeAreaEdges={nativeHeaderScreenEdges}>
-      <Card>
+    <Card>
+      <View style={{ gap: spacing.md }}>
         <View style={uiStyles.brandRow}>
-          <Pressable onPress={handleAvatarPress} disabled={isUploading}>
-            <Avatar name={connectedProfile.displayName} size={54} imageUrl={connectedProfile.connectionAvatarUrl} />
-          </Pressable>
+          <Avatar name={connectedProfile.displayName} size={54} imageUrl={connectedProfile.avatarUrl} />
           <View style={uiStyles.brandText}>
             <Text style={[typography.h2, { color: colors.ink }]}>{connectedProfile.displayName}</Text>
             <Text style={uiStyles.small}>
-              Original profile name: {connectedProfile.profileDisplayName ?? connectedProfile.displayName}
+              {connectedProfile.connectionDisplayName
+                ? `Profile name: ${connectedProfile.profileDisplayName ?? connectedProfile.displayName}`
+                : "Uses their profile name"}
             </Text>
           </View>
         </View>
         <TextField
-          label="Display name"
+          label="Local name"
           value={displayName}
           onChangeText={setDisplayName}
           placeholder={connectedProfile.profileDisplayName ?? "Their name"}
         />
         <Button
-          label={remoteStatus === "loading" ? "Saving..." : "Save display name"}
+          label={remoteStatus === "loading" ? "Saving..." : "Save local name"}
           disabled={remoteStatus === "loading" || !displayName.trim()}
           onPress={saveDisplayName}
         />
         {remoteError ? <Text style={uiStyles.small}>{remoteError}</Text> : null}
-      </Card>
-      <Card>
-        <Text style={[typography.h2, { color: colors.ink }]}>Stop connection</Text>
-        <Text style={uiStyles.small}>
-          Use this if you no longer want to send choices to each other. You can create a new connection later.
-        </Text>
         <Button
-          label={remoteStatus === "loading" ? "Stopping..." : "Stop connection"}
+          label={remoteStatus === "loading" ? "Removing..." : "Remove person"}
           variant="danger"
           disabled={remoteStatus === "loading"}
           onPress={confirmStopConnection}
         />
-      </Card>
-    </Screen>
+      </View>
+    </Card>
   );
 }
 
@@ -1962,6 +2374,24 @@ function SettingsRow({
         </View>
       </Card>
     </Pressable>
+  );
+}
+
+function SettingsSection({ title }: { title: string }) {
+  const { colors } = useTheme();
+  return (
+    <Text
+      style={{
+        color: colors.muted,
+        fontSize: 12,
+        fontWeight: "900",
+        letterSpacing: 0,
+        marginTop: spacing.md,
+        textTransform: "uppercase",
+      }}
+    >
+      {title}
+    </Text>
   );
 }
 
@@ -2025,7 +2455,7 @@ function AttachmentCarousel({
               accessibilityRole="button"
               accessibilityLabel={`Add photo for option ${String.fromCharCode(65 + index)}`}
               onPress={() => onAddImage(index)}
-              style={styles.photoTapArea}
+              style={[styles.photoTapArea, option.imageUrl ? { flex: 1, height: undefined } : null]}
             >
               {option.imageUrl ? (
                 <Image source={{ uri: option.imageUrl }} style={styles.attachmentImage} />
@@ -2036,13 +2466,15 @@ function AttachmentCarousel({
               )}
             </Pressable>
 
-            <TextInput
-              value={option.title}
-              onChangeText={(value) => onUpdateOption(index, { title: value })}
-              placeholder={index === 0 ? "Sushi 🍣" : index === 1 ? "Thai 🍜" : "Name it"}
-              placeholderTextColor={colors.muted}
-              style={styles.optionInput}
-            />
+            {!option.imageUrl ? (
+              <TextInput
+                value={option.title}
+                onChangeText={(value) => onUpdateOption(index, { title: value })}
+                placeholder={index === 0 ? "Sushi 🍣" : index === 1 ? "Thai 🍜" : "Name it"}
+                placeholderTextColor={colors.muted}
+                style={styles.optionInput}
+              />
+            ) : null}
             {canRemove ? (
               <Pressable onPress={() => onRemoveOption(index)} style={styles.removePill}>
                 <Text style={styles.removeText}>Remove</Text>
@@ -2262,6 +2694,7 @@ function useAttachmentStyles() {
       fontWeight: "900",
       minHeight: 54,
       paddingHorizontal: spacing.md,
+      paddingVertical: spacing.md,
     },
     removePill: {
       alignSelf: "flex-start",

@@ -1,7 +1,7 @@
 do $$
 declare
-  seed_alice_id uuid := '00000000-0000-4000-8000-000000000001';
-  seed_bob_id uuid := '00000000-0000-4000-8000-000000000002';
+  seed_lisa_id uuid := '00000000-0000-4000-8000-000000000001';
+  seed_noah_id uuid := '00000000-0000-4000-8000-000000000002';
   seed_connection_id uuid := '00000000-0000-4000-8000-000000000010';
   seed_decision_id uuid := '00000000-0000-4000-8000-000000000030';
   seed_option_a_id uuid := '00000000-0000-4000-8000-000000000031';
@@ -29,16 +29,16 @@ begin
   values
     (
       '00000000-0000-0000-0000-000000000000',
-      seed_alice_id,
+      seed_lisa_id,
       'authenticated',
       'authenticated',
-      'alice@justchoose.test',
+      'lisa@justchoose.test',
       crypt('JustChoose-Test-2026!', gen_salt('bf')),
       now(),
       now(),
       now(),
       '{"provider":"email","providers":["email"]}'::jsonb,
-      '{"display_name":"Alice"}'::jsonb,
+      '{"display_name":"Lisa"}'::jsonb,
       now(),
       now(),
       '',
@@ -48,16 +48,16 @@ begin
     ),
     (
       '00000000-0000-0000-0000-000000000000',
-      seed_bob_id,
+      seed_noah_id,
       'authenticated',
       'authenticated',
-      'bob@justchoose.test',
+      'noah@justchoose.test',
       crypt('JustChoose-Test-2026!', gen_salt('bf')),
       now(),
       now(),
       now(),
       '{"provider":"email","providers":["email"]}'::jsonb,
-      '{"display_name":"Bob"}'::jsonb,
+      '{"display_name":"Noah"}'::jsonb,
       now(),
       now(),
       '',
@@ -85,20 +85,20 @@ begin
   )
   values
     (
-      seed_alice_id,
-      seed_alice_id,
-      seed_alice_id,
-      jsonb_build_object('sub', seed_alice_id::text, 'email', 'alice@justchoose.test'),
+      seed_lisa_id,
+      seed_lisa_id,
+      seed_lisa_id,
+      jsonb_build_object('sub', seed_lisa_id::text, 'email', 'lisa@justchoose.test'),
       'email',
       now(),
       now(),
       now()
     ),
     (
-      seed_bob_id,
-      seed_bob_id,
-      seed_bob_id,
-      jsonb_build_object('sub', seed_bob_id::text, 'email', 'bob@justchoose.test'),
+      seed_noah_id,
+      seed_noah_id,
+      seed_noah_id,
+      jsonb_build_object('sub', seed_noah_id::text, 'email', 'noah@justchoose.test'),
       'email',
       now(),
       now(),
@@ -112,8 +112,8 @@ begin
 
   insert into public.profiles (id, display_name, age, gender, avatar_url)
   values
-    (seed_alice_id, 'Alice', 31, 'woman', null),
-    (seed_bob_id, 'Bob', 32, 'man', null)
+    (seed_lisa_id, 'Lisa', 31, 'woman', null),
+    (seed_noah_id, 'Noah', 32, 'man', null)
   on conflict (id) do update
   set
     display_name = excluded.display_name,
@@ -133,8 +133,8 @@ begin
   values (
     seed_connection_id,
     'TESTDUO',
-    seed_alice_id,
-    seed_alice_id,
+    seed_lisa_id,
+    seed_lisa_id,
     'active',
     'connection'
   )
@@ -157,8 +157,8 @@ begin
     accepted_at
   )
   values
-    ('00000000-0000-4000-8000-000000000011', seed_connection_id, seed_alice_id, 'owner', 'accepted', seed_alice_id, now()),
-    ('00000000-0000-4000-8000-000000000012', seed_connection_id, seed_bob_id, 'member', 'accepted', seed_alice_id, now())
+    ('00000000-0000-4000-8000-000000000011', seed_connection_id, seed_lisa_id, 'owner', 'accepted', seed_lisa_id, now()),
+    ('00000000-0000-4000-8000-000000000012', seed_connection_id, seed_noah_id, 'member', 'accepted', seed_lisa_id, now())
   on conflict (connection_id, user_id) do update
   set
     role = excluded.role,
@@ -182,8 +182,8 @@ begin
     '00000000-0000-4000-8000-000000000013',
     seed_connection_id,
     'TESTDUO',
-    seed_alice_id,
-    seed_bob_id,
+    seed_lisa_id,
+    seed_noah_id,
     'accepted',
     1,
     1,
@@ -209,8 +209,8 @@ begin
   values (
     seed_decision_id,
     seed_connection_id,
-    seed_alice_id,
-    seed_bob_id,
+    seed_lisa_id,
+    seed_noah_id,
     'Which sofa should we pick?',
     'pending'
   )

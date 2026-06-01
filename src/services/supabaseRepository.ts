@@ -4,6 +4,7 @@ import type {
   ChoiceOptionInput,
   Connection,
   ConnectionRequest,
+  ConnectionSummary,
   Decision,
   DecisionOption,
   DecisionResponse,
@@ -37,6 +38,7 @@ type SupabaseLike = {
       email: string;
       options?: { emailRedirectTo?: string };
     }): Promise<{ data: unknown; error: Error | null }>;
+    updateUser(input: { password?: string }): Promise<{ data: unknown; error: Error | null }>;
     signOut(): Promise<{ error: Error | null }>;
   };
   from(table: string): any;
@@ -62,6 +64,7 @@ type StorageList = (path?: string, options?: { limit?: number; offset?: number }
 export type RemoteAppState = {
   authUserId: string | null;
   profile: Profile | null;
+  connections: ConnectionSummary[];
   connectedProfile: Profile | null;
   connection: Connection | null;
   pendingConnectionRequests: ConnectionRequest[];
@@ -69,6 +72,8 @@ export type RemoteAppState = {
 };
 
 export type RemoteDecisionInput = {
+  connectionId?: string;
+  assignedTo?: string;
   note?: string | null;
   options: ChoiceOptionInput[];
 };
@@ -101,6 +106,7 @@ export type AppRepository = {
   signInWithAppleIdentityToken(identityToken: string): Promise<{ userId: string }>;
   signInWithPhoneOtp(phone: string): Promise<void>;
   verifyPhoneOtp(phone: string, token: string): Promise<{ userId: string }>;
+  updatePassword(password: string): Promise<void>;
   loadCurrentUserAppState(): Promise<RemoteAppState>;
   upsertProfile(profile: Profile): Promise<RemoteAppState>;
   createConnectionInvite(): Promise<RemoteAppState>;
@@ -112,7 +118,7 @@ export type AppRepository = {
   createDecisionWithOptions(input: RemoteDecisionInput): Promise<Decision>;
   answerDecision(decisionId: string, input: RemoteResponseInput): Promise<DecisionResponse>;
   savePushToken(userId: string, token: string, platform?: string | null): Promise<void>;
-  updateConnectionDisplayName(input: { connectionId: string; targetUserId: string; displayName: string; avatarUrl?: string | null; avatarPath?: string | null; }): Promise<RemoteAppState>;
+  updateConnectionDisplayName(input: { connectionId: string; targetUserId: string; displayName: string; }): Promise<RemoteAppState>;
   stopConnection(connectionId: string): Promise<RemoteAppState>;
   deleteDecision(decisionId: string): Promise<void>;
   signOut(): Promise<void>;
@@ -122,6 +128,7 @@ export type AppRepository = {
 const emptyRemoteState = (authUserId: string | null = null): RemoteAppState => ({
   authUserId,
   profile: null,
+  connections: [],
   connectedProfile: null,
   connection: null,
   pendingConnectionRequests: [],
@@ -169,63 +176,51 @@ export function createSupabaseRepository(client: SupabaseLike | null): AppReposi
     }
 
     const membershipRows = await selectMany<ConnectionMemberRow>("connection_members", (query) =>
-      query.select("*").eq("user_id", userId).eq("status", "accepted").limit(1),
+      query.select("*").eq("user_id", userId).eq("status", "accepted").order("joined_at", { ascending: true }),
     );
-    const membership = membershipRows[0];
-    if (!membership) {
-      const profileAvatarPath = storedImagePath(profile.avatar_path, profile.avatar_url);
-      const signedImageUrls = await createSignedImageUrlMap(client, [profileAvatarPath]);
-      return {
-        ...emptyRemoteState(userId),
-        profile: toProfile(
-          profile,
-          null,
-          null,
-          null,
-          signedImageUrls.get(profileAvatarPath ?? "") ?? profile.avatar_url,
-        ),
-      };
-    }
-
-    const connection = await selectSingle<ConnectionRow>("connections", (query) =>
-      query.select("*").eq("id", membership.connection_id).single(),
-    );
-    const members = await selectMany<ConnectionMemberRow>("connection_members", (query) =>
-      query.select("*").eq("connection_id", connection.id).eq("status", "accepted"),
-    );
-    const memberIds = members.map((member) => member.user_id);
+    const connectionIds = membershipRows.map((membership) => membership.connection_id);
+    const connectionRows = connectionIds.length
+      ? await selectMany<ConnectionRow>("connections", (query) =>
+          query.select("*").in("id", connectionIds).order("created_at", { ascending: true }),
+        )
+      : [];
+    const members = connectionIds.length
+      ? await selectMany<ConnectionMemberRow>("connection_members", (query) =>
+          query.select("*").in("connection_id", connectionIds).eq("status", "accepted"),
+        )
+      : [];
+    const memberIds = Array.from(new Set([userId, ...members.map((member) => member.user_id)]));
     const profiles = memberIds.length
       ? await selectMany<ProfileRow>("profiles", (query) => query.select("*").in("id", memberIds))
       : [];
-    const connectedProfile = profiles.find((item) => item.id !== userId) ?? null;
-    const alias = connectedProfile
-      ? await selectMaybe<ConnectionAliasRow>("connection_aliases", (query) =>
+    const profileById = new Map(profiles.map((item) => [item.id, item]));
+    const connectedProfileRows = profiles.filter((item) => item.id !== userId);
+    const aliases = connectedProfileRows.length
+      ? await selectMany<ConnectionAliasRow>("connection_aliases", (query) =>
           query
             .select("*")
-            .eq("connection_id", connection.id)
             .eq("owner_user_id", userId)
-            .eq("target_user_id", connectedProfile.id)
-            .maybeSingle(),
+            .in("connection_id", connectionIds)
+            .in("target_user_id", connectedProfileRows.map((item) => item.id)),
         )
-      : null;
-    const inviteRows = connectedProfile
-      ? []
-      : await selectMany<ConnectionInviteRow>("connection_invites", (query) =>
+      : [];
+    const inviteRows = connectionIds.length
+      ? await selectMany<ConnectionInviteRow>("connection_invites", (query) =>
           query
             .select("*")
-            .eq("connection_id", connection.id)
+            .in("connection_id", connectionIds)
             .eq("status", "pending")
             .gt("expires_at", new Date().toISOString())
-            .order("created_at", { ascending: false })
-            .limit(1),
-        );
-    const pendingConnectionRequests = connectedProfile
-      ? []
-      : await loadPendingConnectionRequests();
+            .order("created_at", { ascending: false }),
+        )
+      : [];
 
-    const decisions = await selectMany<DecisionRow>("decisions", (query) =>
-      query.select("*").eq("connection_id", connection.id).order("created_at", { ascending: false }),
-    );
+    const pendingConnectionRequests = await loadPendingConnectionRequests();
+    const decisions = connectionIds.length
+      ? await selectMany<DecisionRow>("decisions", (query) =>
+          query.select("*").in("connection_id", connectionIds).order("created_at", { ascending: false }),
+        )
+      : [];
     const decisionIds = decisions.map((decision) => decision.id);
     const options = decisionIds.length
       ? await selectMany<DecisionOptionRow>("decision_options", (query) =>
@@ -238,35 +233,59 @@ export function createSupabaseRepository(client: SupabaseLike | null): AppReposi
         )
       : [];
     const profileAvatarPath = storedImagePath(profile.avatar_path, profile.avatar_url);
-    const connectedProfileAvatarPath = connectedProfile
-      ? storedImagePath(connectedProfile.avatar_path, connectedProfile.avatar_url)
-      : null;
-    const connectionAvatarPath = storedImagePath(alias?.avatar_path, alias?.avatar_url);
+    const connectedProfileAvatarPaths = connectedProfileRows.map((item) =>
+      storedImagePath(item.avatar_path, item.avatar_url),
+    );
     const optionImagePaths = options.map((option) => storedImagePath(option.image_path, option.image_url));
     const signedImageUrls = await createSignedImageUrlMap(
       client,
-      [profileAvatarPath, connectedProfileAvatarPath, connectionAvatarPath, ...optionImagePaths],
+      [profileAvatarPath, ...connectedProfileAvatarPaths, ...optionImagePaths],
     );
+    const connections = connectionRows.map((connection) => {
+      const connectedMember = members.find(
+        (member) => member.connection_id === connection.id && member.user_id !== userId,
+      );
+      const connectedProfileRow = connectedMember ? profileById.get(connectedMember.user_id) ?? null : null;
+      const alias = connectedProfileRow
+        ? aliases.find(
+            (item) =>
+              item.connection_id === connection.id &&
+              item.owner_user_id === userId &&
+              item.target_user_id === connectedProfileRow.id,
+          ) ?? null
+        : null;
+      const connectedProfileAvatarPath = connectedProfileRow
+        ? storedImagePath(connectedProfileRow.avatar_path, connectedProfileRow.avatar_url)
+        : null;
+      const activeInvite = inviteRows.find((invite) => invite.connection_id === connection.id);
+
+      return {
+        connection: toConnection(connection, activeInvite),
+        connectedProfile: connectedProfileRow
+          ? toProfile(
+              connectedProfileRow,
+              alias?.display_name ?? null,
+              signedImageUrls.get(connectedProfileAvatarPath ?? "") ?? connectedProfileRow.avatar_url,
+            )
+          : null,
+      };
+    });
+    const activeConnection =
+      connections.find((item) => item.connectedProfile) ??
+      [...connections].reverse().find((item) => item.connection.inviteCode) ??
+      connections[0] ??
+      null;
 
     return {
       authUserId: userId,
       profile: toProfile(
         profile,
         null,
-        null,
-        null,
         signedImageUrls.get(profileAvatarPath ?? "") ?? profile.avatar_url,
       ),
-      connectedProfile: connectedProfile
-        ? toProfile(
-            connectedProfile,
-            alias?.display_name ?? null,
-            signedImageUrls.get(connectionAvatarPath ?? "") ?? alias?.avatar_url ?? null,
-            connectionAvatarPath,
-            signedImageUrls.get(connectedProfileAvatarPath ?? "") ?? connectedProfile.avatar_url,
-          )
-        : null,
-      connection: toConnection(connection, inviteRows[0]),
+      connections,
+      connectedProfile: activeConnection?.connectedProfile ?? null,
+      connection: activeConnection?.connection ?? null,
       pendingConnectionRequests,
       decisions: decisions.map((decision) => toDecision(decision, options, responses, signedImageUrls)),
     };
@@ -467,6 +486,16 @@ export function createSupabaseRepository(client: SupabaseLike | null): AppReposi
       return { userId: data.user.id };
     },
 
+    async updatePassword(password) {
+      if (!client) {
+        return;
+      }
+      const { error } = await client.auth.updateUser({ password });
+      if (error) {
+        throw error;
+      }
+    },
+
     loadCurrentUserAppState,
 
     async upsertProfile(profile) {
@@ -491,8 +520,8 @@ export function createSupabaseRepository(client: SupabaseLike | null): AppReposi
 
     async createConnectionInvite() {
       if (!client) {
-        mockState.connection = {
-          id: "mock-connection",
+        const connection: Connection = {
+          id: "mock-connection-" + Date.now(),
           inviteCode: "MOCKCODE",
           inviteExpiresAt: new Date(Date.now() + 60 * 60 * 1000).toISOString(),
           createdBy: mockState.profile?.id ?? "mock",
@@ -503,6 +532,9 @@ export function createSupabaseRepository(client: SupabaseLike | null): AppReposi
           subscriptionCurrentPeriodEnd: null,
           createdAt: new Date().toISOString(),
         };
+        mockState.connections = [...mockState.connections, { connection, connectedProfile: null }];
+        mockState.connection = connection;
+        mockState.connectedProfile = null;
         return mockState;
       }
       const { error } = await client.rpc("create_connection_invite");
@@ -605,11 +637,19 @@ export function createSupabaseRepository(client: SupabaseLike | null): AppReposi
           imagePath: opt.imagePath ?? null,
           sortOrder: idx,
         }));
+        const targetConnection = input.connectionId
+          ? mockState.connections.find((item) => item.connection.id === input.connectionId)
+          : mockState.connections.find((item) => item.connectedProfile) ?? null;
+        const targetProfile = input.assignedTo
+          ? targetConnection?.connectedProfile?.id === input.assignedTo
+            ? targetConnection.connectedProfile
+            : null
+          : targetConnection?.connectedProfile ?? mockState.connectedProfile;
         const decision: Decision = {
           id: decisionId,
-          connectionId: mockState.connection?.id ?? "mock",
+          connectionId: targetConnection?.connection.id ?? mockState.connection?.id ?? "mock",
           createdBy: mockState.profile?.id ?? "mock",
-          assignedTo: mockState.connectedProfile?.id ?? "mock",
+          assignedTo: targetProfile?.id ?? mockState.connectedProfile?.id ?? "mock",
           title: makeDecisionTitle(options),
           note: input.note ?? null,
           status: "pending",
@@ -623,7 +663,15 @@ export function createSupabaseRepository(client: SupabaseLike | null): AppReposi
         return decision;
       }
       const state = await loadCurrentUserAppState();
-      if (!state.profile || !state.connection || !state.connectedProfile) {
+      const targetConnection =
+        (input.connectionId
+          ? state.connections.find((item) => item.connection.id === input.connectionId)
+          : state.connections.find((item) => item.connectedProfile)) ?? null;
+      const targetProfile =
+        input.assignedTo && targetConnection?.connectedProfile?.id !== input.assignedTo
+          ? null
+          : targetConnection?.connectedProfile ?? null;
+      if (!state.profile || !targetConnection || !targetProfile) {
         throw new Error("Create a connection before creating choices.");
       }
 
@@ -631,9 +679,9 @@ export function createSupabaseRepository(client: SupabaseLike | null): AppReposi
       const decision = await selectSingle<DecisionRow>("decisions", (query) =>
         query
           .insert({
-            connection_id: state.connection!.id,
+            connection_id: targetConnection.connection.id,
             created_by: state.profile!.id,
-            assigned_to: state.connectedProfile!.id,
+            assigned_to: targetProfile.id,
             note: input.note?.trim() || null,
             status: "pending",
             created_at: createdAt,
@@ -656,7 +704,7 @@ export function createSupabaseRepository(client: SupabaseLike | null): AppReposi
       );
       const created = toDecision(decision, options, []);
       const tokens = await selectMany<PushTokenRow>("push_tokens", (query) =>
-        query.select("*").eq("user_id", state.connectedProfile!.id),
+        query.select("*").eq("user_id", targetProfile.id),
       );
       await sendChoicePushNotifications(
         tokens.map((row) => row.token),
@@ -708,25 +756,38 @@ export function createSupabaseRepository(client: SupabaseLike | null): AppReposi
       if (!client) {
         return;
       }
-      const { error } = await client.from("push_tokens").upsert({
-        user_id: userId,
-        token,
-        platform,
-      });
+      const { error } = await client.from("push_tokens").upsert(
+        {
+          user_id: userId,
+          token,
+          platform,
+        },
+        { onConflict: "user_id,token" },
+      );
       if (error) {
         throw error;
       }
     },
 
-    async updateConnectionDisplayName({ connectionId, targetUserId, displayName, avatarUrl, avatarPath }) {
+    async updateConnectionDisplayName({ connectionId, targetUserId, displayName }) {
       if (!client) {
+        mockState.connections = mockState.connections.map((item) =>
+          item.connection.id === connectionId && item.connectedProfile?.id === targetUserId
+            ? {
+                ...item,
+                connectedProfile: {
+                  ...item.connectedProfile,
+                  displayName: displayName.trim(),
+                  connectionDisplayName: displayName.trim(),
+                },
+              }
+            : item,
+        );
         if (mockState.connectedProfile?.id === targetUserId) {
           mockState.connectedProfile = {
             ...mockState.connectedProfile,
             displayName: displayName.trim(),
             connectionDisplayName: displayName.trim(),
-            connectionAvatarUrl: avatarUrl !== undefined ? avatarUrl : mockState.connectedProfile.connectionAvatarUrl,
-            connectionAvatarPath: avatarPath !== undefined ? avatarPath : mockState.connectedProfile.connectionAvatarPath,
           };
         }
         return mockState;
@@ -739,10 +800,6 @@ export function createSupabaseRepository(client: SupabaseLike | null): AppReposi
         target_user_id: targetUserId,
         display_name: displayName.trim(),
       };
-      if (avatarUrl !== undefined) {
-        payload.avatar_url = avatarUrl;
-        payload.avatar_path = avatarPath ?? extractDecisionImagePath(avatarUrl);
-      }
 
       const { error } = await client.from("connection_aliases").upsert(
         payload,
@@ -756,11 +813,14 @@ export function createSupabaseRepository(client: SupabaseLike | null): AppReposi
 
     async stopConnection(connectionId) {
       if (!client) {
+        const remainingConnections = mockState.connections.filter((item) => item.connection.id !== connectionId);
+        const activeConnection = remainingConnections.find((item) => item.connectedProfile) ?? remainingConnections[0] ?? null;
         mockState = {
           ...mockState,
-          connection: null,
-          connectedProfile: null,
-          decisions: [],
+          connections: remainingConnections,
+          connection: activeConnection?.connection ?? null,
+          connectedProfile: activeConnection?.connectedProfile ?? null,
+          decisions: mockState.decisions.filter((decision) => decision.connectionId !== connectionId),
         };
         return mockState;
       }
@@ -839,6 +899,7 @@ export const signInWithPhoneOtp = (phone: string) =>
   appRepository.signInWithPhoneOtp(phone);
 export const verifyPhoneOtp = (phone: string, token: string) =>
   appRepository.verifyPhoneOtp(phone, token);
+export const updatePassword = (password: string) => appRepository.updatePassword(password);
 export const upsertProfile = (profile: Profile) => appRepository.upsertProfile(profile);
 export const deleteAccount = () => appRepository.deleteAccount();
 
@@ -862,8 +923,6 @@ type ConnectionAliasRow = {
   owner_user_id: string;
   target_user_id: string;
   display_name: string;
-  avatar_url: string | null;
-  avatar_path?: string | null;
 };
 
 type ConnectionRow = {
@@ -959,8 +1018,6 @@ type PushTokenRow = {
 function toProfile(
   row: ProfileRow,
   connectionDisplayName?: string | null,
-  connectionAvatarUrl?: string | null,
-  connectionAvatarPath?: string | null,
   avatarUrl?: string | null,
 ): Profile {
   return {
@@ -968,8 +1025,6 @@ function toProfile(
     displayName: connectionDisplayName?.trim() || row.display_name,
     profileDisplayName: row.display_name,
     connectionDisplayName: connectionDisplayName ?? null,
-    connectionAvatarUrl: connectionAvatarUrl ?? null,
-    connectionAvatarPath: connectionAvatarPath ?? null,
     age: row.age ?? null,
     gender: row.gender ?? null,
     avatarUrl: avatarUrl ?? row.avatar_url,

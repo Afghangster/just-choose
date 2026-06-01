@@ -67,16 +67,28 @@ export async function uploadDecisionImage(userId: string, localUri: string) {
     return { imageUrl: localUri, imagePath: null };
   }
 
-  const base64 = await FileSystem.readAsStringAsync(localUri, { encoding: "base64" });
-  const arrayBuffer = decode(base64);
   const path = `${userId}/${Date.now()}.jpg`;
 
-  const { error } = await supabase.storage
-    .from(DECISION_IMAGE_BUCKET)
-    .upload(path, arrayBuffer, { contentType: "image/jpeg", upsert: false });
+  const session = await supabase.auth.getSession();
+  const token = session.data.session?.access_token;
 
-  if (error) {
-    throw error;
+  if (!token) {
+    throw new Error("No active session to upload image.");
+  }
+
+  const url = `${process.env.EXPO_PUBLIC_SUPABASE_URL}/storage/v1/object/${DECISION_IMAGE_BUCKET}/${path}`;
+
+  const uploadResult = await FileSystem.uploadAsync(url, localUri, {
+    httpMethod: "POST",
+    uploadType: FileSystem.FileSystemUploadType.BINARY_CONTENT,
+    headers: {
+      Authorization: `Bearer ${token}`,
+      "Content-Type": "image/jpeg",
+    },
+  });
+
+  if (uploadResult.status !== 200) {
+    throw new Error("Failed to upload image.");
   }
 
   return {
@@ -90,16 +102,28 @@ export async function uploadAvatarImage(userId: string, localUri: string) {
     return { imageUrl: localUri, imagePath: null };
   }
 
-  const base64 = await FileSystem.readAsStringAsync(localUri, { encoding: "base64" });
-  const arrayBuffer = decode(base64);
   const path = `${userId}/avatars/${Date.now()}.jpg`;
 
-  const { error } = await supabase.storage
-    .from(DECISION_IMAGE_BUCKET)
-    .upload(path, arrayBuffer, { contentType: "image/jpeg", upsert: false });
+  const session = await supabase.auth.getSession();
+  const token = session.data.session?.access_token;
 
-  if (error) {
-    throw error;
+  if (!token) {
+    throw new Error("No active session to upload image.");
+  }
+
+  const url = `${process.env.EXPO_PUBLIC_SUPABASE_URL}/storage/v1/object/${DECISION_IMAGE_BUCKET}/${path}`;
+
+  const uploadResult = await FileSystem.uploadAsync(url, localUri, {
+    httpMethod: "POST",
+    uploadType: FileSystem.FileSystemUploadType.BINARY_CONTENT,
+    headers: {
+      Authorization: `Bearer ${token}`,
+      "Content-Type": "image/jpeg",
+    },
+  });
+
+  if (uploadResult.status !== 200) {
+    throw new Error("Failed to upload image.");
   }
 
   return {

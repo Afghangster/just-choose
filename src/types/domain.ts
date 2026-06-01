@@ -21,8 +21,6 @@ export type Profile = {
   displayName: string;
   profileDisplayName?: string;
   connectionDisplayName?: string | null;
-  connectionAvatarUrl?: string | null;
-  connectionAvatarPath?: string | null;
   age?: number | null;
   gender?: Gender | null;
   avatarUrl?: string | null;
@@ -47,6 +45,11 @@ export type ConnectionRequest = {
   requesterId: string;
   requesterDisplayName: string;
   requestedAt: string;
+};
+
+export type ConnectionSummary = {
+  connection: Connection;
+  connectedProfile: Profile | null;
 };
 
 export type DecisionOption = {

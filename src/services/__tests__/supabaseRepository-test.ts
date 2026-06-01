@@ -1,7 +1,7 @@
 import { createSupabaseRepository } from "../supabaseRepository";
 
-const aliceId = "00000000-0000-4000-8000-000000000001";
-const bobId = "00000000-0000-4000-8000-000000000002";
+const lisaId = "00000000-0000-4000-8000-000000000001";
+const noahId = "00000000-0000-4000-8000-000000000002";
 const charlieId = "00000000-0000-4000-8000-000000000003";
 const connectionId = "00000000-0000-4000-8000-000000000010";
 const charlieConnectionId = "00000000-0000-4000-8000-000000000020";
@@ -17,13 +17,13 @@ describe("createSupabaseRepository simplified model", () => {
   });
 
   test("hydrates a two-person connection into app domain models", async () => {
-    const client = createFakeSupabaseClient(aliceId, seededTables());
+    const client = createFakeSupabaseClient(lisaId, seededTables());
     const repository = createSupabaseRepository(client);
 
     const state = await repository.loadCurrentUserAppState();
 
-    expect(state.profile?.displayName).toBe("Alice");
-    expect(state.connectedProfile?.displayName).toBe("Bob");
+    expect(state.profile?.displayName).toBe("Lisa");
+    expect(state.connectedProfile?.displayName).toBe("Noah");
     expect(state.connection?.inviteCode).toBe("");
     expect(state.decisions).toHaveLength(1);
     expect(state.decisions[0].title).toBe("Green sofa or Blue sofa?");
@@ -34,59 +34,61 @@ describe("createSupabaseRepository simplified model", () => {
     expect(state.decisions[0].response?.responseType).toBe("selected_option");
   });
 
+  test("hydrates multiple accepted connections", async () => {
+    const client = createFakeSupabaseClient(lisaId, seededTables({ includeCharlieMembership: true }));
+    const repository = createSupabaseRepository(client);
+
+    const state = await repository.loadCurrentUserAppState();
+
+    expect(state.connections.map((item) => item.connectedProfile?.displayName)).toEqual(["Noah", "Charlie"]);
+    expect(state.connectedProfile?.displayName).toBe("Noah");
+  });
+
   test("hydrates private storage paths into fresh signed image urls", async () => {
     const tables = seededTables();
-    tables.decision_options[0].image_path = `${aliceId}/green-sofa.jpg`;
-    tables.connection_aliases.push({
-      id: "00000000-0000-4000-8000-000000000060",
-      connection_id: connectionId,
-      owner_user_id: aliceId,
-      target_user_id: bobId,
-      display_name: "Bob",
-      avatar_url: null,
-      avatar_path: `${aliceId}/avatars/bob.jpg`,
-    });
-    const repository = createSupabaseRepository(createFakeSupabaseClient(aliceId, tables));
+    tables.decision_options[0].image_path = `${lisaId}/green-sofa.jpg`;
+    tables.profiles.find((row) => row.id === noahId)!.avatar_path = `${noahId}/avatars/profile.jpg`;
+    const repository = createSupabaseRepository(createFakeSupabaseClient(lisaId, tables));
 
     const state = await repository.loadCurrentUserAppState();
 
     expect(state.decisions[0].options[0]).toMatchObject({
-      imagePath: `${aliceId}/green-sofa.jpg`,
-      imageUrl: `https://signed.example/decision-images/${aliceId}/green-sofa.jpg`,
+      imagePath: `${lisaId}/green-sofa.jpg`,
+      imageUrl: `https://signed.example/decision-images/${lisaId}/green-sofa.jpg`,
     });
-    expect(state.connectedProfile?.connectionAvatarUrl).toBe(
-      `https://signed.example/decision-images/${aliceId}/avatars/bob.jpg`,
+    expect(state.connectedProfile?.avatarUrl).toBe(
+      `https://signed.example/decision-images/${noahId}/avatars/profile.jpg`,
     );
   });
 
   test("previews then accepts an invite before creating a decision", async () => {
-    const tables = seededTables({ includeBobMembership: false, includeDecision: false });
-    const client = createFakeSupabaseClient(bobId, tables);
+    const tables = seededTables({ includeNoahMembership: false, includeDecision: false });
+    const client = createFakeSupabaseClient(noahId, tables);
     const repository = createSupabaseRepository(client);
 
     const preview = await repository.previewConnectionInvite("testduo");
     expect(preview).toMatchObject({
       code: "TESTDUO",
-      inviterDisplayName: "Alice",
+      inviterDisplayName: "Lisa",
       expiresAt: futureDate,
     });
-    expect(tables.connection_members.some((row) => row.user_id === bobId)).toBe(false);
+    expect(tables.connection_members.some((row) => row.user_id === noahId)).toBe(false);
 
     const requested = await repository.acceptConnectionInvite("testduo");
     expect(requested.connection).toBeNull();
-    expect(tables.connection_members.find((row) => row.user_id === bobId)?.status).toBe("invited");
+    expect(tables.connection_members.find((row) => row.user_id === noahId)?.status).toBe("invited");
 
-    const aliceRepository = createSupabaseRepository(createFakeSupabaseClient(aliceId, tables));
-    const aliceState = await aliceRepository.loadCurrentUserAppState();
-    expect(aliceState.pendingConnectionRequests[0]).toMatchObject({
-      requesterId: bobId,
-      requesterDisplayName: "Bob",
+    const lisaRepository = createSupabaseRepository(createFakeSupabaseClient(lisaId, tables));
+    const lisaState = await lisaRepository.loadCurrentUserAppState();
+    expect(lisaState.pendingConnectionRequests[0]).toMatchObject({
+      requesterId: noahId,
+      requesterDisplayName: "Noah",
     });
 
-    await aliceRepository.approveConnectionRequest(bobId);
+    await lisaRepository.approveConnectionRequest(noahId);
     const joined = await repository.loadCurrentUserAppState();
     expect(joined.connection?.id).toBe(connectionId);
-    expect(joined.connectedProfile?.id).toBe(aliceId);
+    expect(joined.connectedProfile?.id).toBe(lisaId);
 
     const decision = await repository.createDecisionWithOptions({
       note: "Need it today",
@@ -109,31 +111,31 @@ describe("createSupabaseRepository simplified model", () => {
       "https://exp.host/--/api/v2/push/send",
       expect.objectContaining({
         method: "POST",
-        body: expect.stringContaining("ExponentPushToken[alice]"),
+        body: expect.stringContaining("ExponentPushToken[lisa]"),
       }),
     );
   });
 
-  test("creates a server-side one-hour invite and revokes older pending invites", async () => {
-    const tables = seededTables({ includeBobMembership: false, includeDecision: false });
-    const client = createFakeSupabaseClient(aliceId, tables);
+  test("creates a server-side one-hour invite for a new connection", async () => {
+    const tables = seededTables({ includeNoahMembership: false, includeDecision: false });
+    const client = createFakeSupabaseClient(lisaId, tables);
     const repository = createSupabaseRepository(client);
 
     const state = await repository.createConnectionInvite();
 
     expect(state.connection?.inviteCode).toMatch(/^[A-Z0-9]{12}$/);
     expect(state.connection?.inviteCode).not.toBe("TESTDUO");
-    expect(tables.connection_invites.find((row) => row.code === "TESTDUO")?.status).toBe("revoked");
     const activeInvites = tables.connection_invites.filter((row) => row.status === "pending");
-    expect(activeInvites).toHaveLength(1);
-    const activeInvite = activeInvites[0];
+    expect(activeInvites).toHaveLength(2);
+    const activeInvite = activeInvites.find((row) => row.code === state.connection?.inviteCode);
     expect(activeInvite?.code).toBe(state.connection?.inviteCode);
     expect(Date.parse(activeInvite!.expires_at) - Date.now()).toBeLessThanOrEqual(60 * 60 * 1000);
+    expect(state.connections).toHaveLength(2);
   });
 
   test("new invite codes are rate-limited to one per minute", async () => {
-    const tables = seededTables({ includeBobMembership: false, includeDecision: false });
-    const client = createFakeSupabaseClient(aliceId, tables);
+    const tables = seededTables({ includeNoahMembership: false, includeDecision: false });
+    const client = createFakeSupabaseClient(lisaId, tables);
     const repository = createSupabaseRepository(client);
 
     await repository.createConnectionInvite();
@@ -141,13 +143,13 @@ describe("createSupabaseRepository simplified model", () => {
     await expect(repository.createConnectionInvite()).rejects.toThrow(
       "Please wait one minute before creating a new invite code.",
     );
-    expect(tables.connection_invites.filter((row) => row.status === "pending")).toHaveLength(1);
+    expect(tables.connection_invites.filter((row) => row.status === "pending")).toHaveLength(2);
   });
 
-  test("expired, accepted, self-created, and already-connected invites cannot be used", async () => {
+  test("expired, accepted, and self-created invites cannot be used", async () => {
     await expect(
-      createSupabaseRepository(createFakeSupabaseClient(bobId, seededTables({
-        includeBobMembership: false,
+      createSupabaseRepository(createFakeSupabaseClient(noahId, seededTables({
+        includeNoahMembership: false,
         includeDecision: false,
         inviteExpiresAt: pastDate,
       }))).previewConnectionInvite("TESTDUO"),
@@ -157,31 +159,35 @@ describe("createSupabaseRepository simplified model", () => {
       createSupabaseRepository(createFakeSupabaseClient(charlieId, seededTables())).acceptConnectionInvite("TESTDUO"),
     ).rejects.toThrow("Invite code not found or expired.");
 
-    const revokedTables = seededTables({ includeBobMembership: false, includeDecision: false });
+    const revokedTables = seededTables({ includeNoahMembership: false, includeDecision: false });
     revokedTables.connection_invites[0].status = "revoked";
     await expect(
-      createSupabaseRepository(createFakeSupabaseClient(bobId, revokedTables)).acceptConnectionInvite("TESTDUO"),
+      createSupabaseRepository(createFakeSupabaseClient(noahId, revokedTables)).acceptConnectionInvite("TESTDUO"),
     ).rejects.toThrow("Invite code not found or expired.");
 
     await expect(
-      createSupabaseRepository(createFakeSupabaseClient(aliceId, seededTables({
-        includeBobMembership: false,
+      createSupabaseRepository(createFakeSupabaseClient(lisaId, seededTables({
+        includeNoahMembership: false,
         includeDecision: false,
       }))).previewConnectionInvite("TESTDUO"),
     ).rejects.toThrow("You cannot accept your own invite.");
 
-    await expect(
-      createSupabaseRepository(createFakeSupabaseClient(charlieId, seededTables({
-        includeBobMembership: false,
-        includeDecision: false,
-        includeCharlieMembership: true,
-      }))).acceptConnectionInvite("TESTDUO"),
-    ).rejects.toThrow("You already have an accepted connection.");
+    const alreadyConnectedTables = seededTables({
+      includeNoahMembership: false,
+      includeDecision: false,
+      includeCharlieMembership: true,
+    });
+    await createSupabaseRepository(createFakeSupabaseClient(charlieId, alreadyConnectedTables)).acceptConnectionInvite("TESTDUO");
+    expect(
+      alreadyConnectedTables.connection_members.some(
+        (row) => row.connection_id === connectionId && row.user_id === charlieId && row.status === "invited",
+      ),
+    ).toBe(true);
   });
 
   test("a third user cannot reuse an invite after it is accepted once", async () => {
-    const tables = seededTables({ includeBobMembership: false, includeDecision: false });
-    await createSupabaseRepository(createFakeSupabaseClient(bobId, tables)).acceptConnectionInvite("TESTDUO");
+    const tables = seededTables({ includeNoahMembership: false, includeDecision: false });
+    await createSupabaseRepository(createFakeSupabaseClient(noahId, tables)).acceptConnectionInvite("TESTDUO");
 
     await expect(
       createSupabaseRepository(createFakeSupabaseClient(charlieId, tables)).acceptConnectionInvite("TESTDUO"),
@@ -190,7 +196,7 @@ describe("createSupabaseRepository simplified model", () => {
 
   test("answers a pending decision and trigger marks it answered remotely", async () => {
     const tables = seededTables({ includeResponse: false });
-    const client = createFakeSupabaseClient(bobId, tables);
+    const client = createFakeSupabaseClient(noahId, tables);
     const repository = createSupabaseRepository(client);
 
     const response = await repository.answerDecision(decisionId, {
@@ -208,27 +214,27 @@ describe("createSupabaseRepository simplified model", () => {
 
   test("connection display names are private labels for the current user", async () => {
     const tables = seededTables();
-    const repository = createSupabaseRepository(createFakeSupabaseClient(aliceId, tables));
+    const repository = createSupabaseRepository(createFakeSupabaseClient(lisaId, tables));
 
     const renamed = await repository.updateConnectionDisplayName({
       connectionId,
-      targetUserId: bobId,
-      displayName: "Bobby Tables",
+      targetUserId: noahId,
+      displayName: "Noahby Tables",
     });
 
-    expect(renamed.connectedProfile?.displayName).toBe("Bobby Tables");
-    expect(renamed.connectedProfile?.profileDisplayName).toBe("Bob");
+    expect(renamed.connectedProfile?.displayName).toBe("Noahby Tables");
+    expect(renamed.connectedProfile?.profileDisplayName).toBe("Noah");
     expect(tables.connection_aliases[0]).toMatchObject({
       connection_id: connectionId,
-      owner_user_id: aliceId,
-      target_user_id: bobId,
-      display_name: "Bobby Tables",
+      owner_user_id: lisaId,
+      target_user_id: noahId,
+      display_name: "Noahby Tables",
     });
   });
 
   test("stopping a connection removes active memberships and clears state", async () => {
     const tables = seededTables();
-    const repository = createSupabaseRepository(createFakeSupabaseClient(aliceId, tables));
+    const repository = createSupabaseRepository(createFakeSupabaseClient(lisaId, tables));
 
     const stopped = await repository.stopConnection(connectionId);
 
@@ -241,7 +247,7 @@ describe("createSupabaseRepository simplified model", () => {
 const UUIDish = /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-8[0-9a-f]{3}-[0-9a-f]{12}$/;
 
 function seededTables({
-  includeBobMembership = true,
+  includeNoahMembership = true,
   includeDecision = true,
   includeResponse = true,
   includeCharlieMembership = false,
@@ -249,8 +255,8 @@ function seededTables({
 } = {}) {
   return {
     profiles: [
-      { id: aliceId, display_name: "Alice", age: 31, gender: "woman", avatar_url: null },
-      { id: bobId, display_name: "Bob", age: 32, gender: "man", avatar_url: null },
+      { id: lisaId, display_name: "Lisa", age: 31, gender: "woman", avatar_url: null },
+      { id: noahId, display_name: "Noah", age: 32, gender: "man", avatar_url: null },
       { id: charlieId, display_name: "Charlie", age: 29, gender: "prefer_not_to_say", avatar_url: null },
     ],
     connection_aliases: [],
@@ -258,8 +264,8 @@ function seededTables({
       {
         id: connectionId,
         invite_code: "TESTDUO",
-        created_by: aliceId,
-        billing_owner_user_id: aliceId,
+        created_by: lisaId,
+        billing_owner_user_id: lisaId,
         subscription_status: "active",
         plan: "connection",
         subscription_current_period_end: null,
@@ -284,22 +290,22 @@ function seededTables({
       {
         id: "00000000-0000-4000-8000-000000000011",
         connection_id: connectionId,
-        user_id: aliceId,
+        user_id: lisaId,
         role: "owner",
         status: "accepted",
-        invited_by: aliceId,
+        invited_by: lisaId,
         accepted_at: "2026-05-25T09:00:00.000Z",
         joined_at: "2026-05-25T09:00:00.000Z",
       },
-      ...(includeBobMembership
+      ...(includeNoahMembership
         ? [
             {
               id: "00000000-0000-4000-8000-000000000012",
               connection_id: connectionId,
-              user_id: bobId,
+              user_id: noahId,
               role: "member",
               status: "accepted",
-              invited_by: aliceId,
+              invited_by: lisaId,
               accepted_at: "2026-05-25T09:00:00.000Z",
               joined_at: "2026-05-25T09:00:00.000Z",
             },
@@ -307,6 +313,16 @@ function seededTables({
         : []),
       ...(includeCharlieMembership
         ? [
+            {
+              id: "00000000-0000-4000-8000-000000000015",
+              connection_id: charlieConnectionId,
+              user_id: lisaId,
+              role: "member",
+              status: "accepted",
+              invited_by: charlieId,
+              accepted_at: "2026-05-25T09:00:00.000Z",
+              joined_at: "2026-05-25T09:00:00.000Z",
+            },
             {
               id: "00000000-0000-4000-8000-000000000014",
               connection_id: charlieConnectionId,
@@ -325,13 +341,13 @@ function seededTables({
         id: "00000000-0000-4000-8000-000000000013",
         connection_id: connectionId,
         code: "TESTDUO",
-        created_by: aliceId,
-        accepted_by: includeBobMembership ? bobId : null,
-        status: includeBobMembership ? "accepted" : "pending",
+        created_by: lisaId,
+        accepted_by: includeNoahMembership ? noahId : null,
+        status: includeNoahMembership ? "accepted" : "pending",
         max_uses: 1,
-        use_count: includeBobMembership ? 1 : 0,
+        use_count: includeNoahMembership ? 1 : 0,
         expires_at: inviteExpiresAt,
-        accepted_at: includeBobMembership ? "2026-05-25T09:00:00.000Z" : null,
+        accepted_at: includeNoahMembership ? "2026-05-25T09:00:00.000Z" : null,
         revoked_at: null,
         created_at: "2026-05-25T09:00:00.000Z",
         updated_at: "2026-05-25T09:00:00.000Z",
@@ -342,8 +358,8 @@ function seededTables({
           {
             id: decisionId,
             connection_id: connectionId,
-            created_by: aliceId,
-            assigned_to: bobId,
+            created_by: lisaId,
+            assigned_to: noahId,
             note: null,
             status: includeResponse ? "answered" : "pending",
             created_at: "2026-05-25T09:00:00.000Z",
@@ -377,7 +393,7 @@ function seededTables({
           {
             id: "00000000-0000-4000-8000-000000000033",
             decision_id: decisionId,
-            responder_id: bobId,
+            responder_id: noahId,
             selected_option_id: optionAId,
             response_type: "selected_option",
             comment: "Looks better",
@@ -388,8 +404,8 @@ function seededTables({
     push_tokens: [
       {
         id: "00000000-0000-4000-8000-000000000050",
-        user_id: aliceId,
-        token: "ExponentPushToken[alice]",
+        user_id: lisaId,
+        token: "ExponentPushToken[lisa]",
         platform: "ios",
       },
     ],
@@ -411,6 +427,7 @@ function createFakeSupabaseClient(userId: string, tables: Record<string, any[]>)
       verifyOtp: jest.fn(async () => ({ data: { user: { id: userId }, session: {} }, error: null })),
       signUp: jest.fn(async () => ({ data: { user: { id: userId }, session: {} }, error: null })),
       resend: jest.fn(async () => ({ data: {}, error: null })),
+      updateUser: jest.fn(async () => ({ data: {}, error: null })),
       signOut: jest.fn(async () => ({ error: null })),
     },
     from(table: string) {
@@ -430,20 +447,12 @@ function createFakeSupabaseClient(userId: string, tables: Record<string, any[]>)
     },
     rpc: jest.fn(async (fn: string, args: Record<string, string>) => {
       if (fn === "create_connection_invite") {
-        const membership = tables.connection_members.find((row) => row.user_id === userId && row.status === "accepted");
-        let targetConnectionId = membership?.connection_id;
+        const targetConnectionId = uuid();
         let code = `PAIR${String(nextId++).padStart(8, "0")}`;
         const expiresAt = new Date(Date.now() + 60 * 60 * 1000 - 1000).toISOString();
         const latestPendingInvite = tables.connection_invites
           .filter((row) => row.created_by === userId && row.status === "pending" && Date.parse(row.expires_at) > Date.now())
           .sort((left, right) => Date.parse(right.created_at) - Date.parse(left.created_at))[0];
-
-        if (
-          targetConnectionId &&
-          tables.connection_members.some((row) => row.connection_id === targetConnectionId && row.user_id !== userId && row.status === "accepted")
-        ) {
-          return { data: null, error: new Error("You already have an accepted connection.") };
-        }
 
         if (latestPendingInvite && Date.parse(latestPendingInvite.created_at) > Date.now() - 60 * 1000) {
           return { data: null, error: new Error("Please wait one minute before creating a new invite code.") };
@@ -453,40 +462,26 @@ function createFakeSupabaseClient(userId: string, tables: Record<string, any[]>)
           code = `PAIR${String(nextId++).padStart(8, "0")}`;
         }
 
-        if (!targetConnectionId) {
-          targetConnectionId = uuid();
-          tables.connections.push({
-            id: targetConnectionId,
-            invite_code: code,
-            created_by: userId,
-            billing_owner_user_id: null,
-            subscription_status: "inactive",
-            plan: "free",
-            subscription_current_period_end: null,
-            created_at: new Date().toISOString(),
-          });
-          tables.connection_members.push({
-            id: uuid(),
-            connection_id: targetConnectionId,
-            user_id: userId,
-            role: "owner",
-            status: "accepted",
-            invited_by: userId,
-            accepted_at: new Date().toISOString(),
-            joined_at: new Date().toISOString(),
-          });
-        } else {
-          tables.connection_invites
-            .filter((row) => row.connection_id === targetConnectionId && row.created_by === userId && row.status === "pending")
-            .forEach((row) => {
-              row.status = "revoked";
-              row.revoked_at = new Date().toISOString();
-            });
-          const connection = tables.connections.find((row) => row.id === targetConnectionId);
-          if (connection) {
-            connection.invite_code = code;
-          }
-        }
+        tables.connections.push({
+          id: targetConnectionId,
+          invite_code: code,
+          created_by: userId,
+          billing_owner_user_id: null,
+          subscription_status: "inactive",
+          plan: "free",
+          subscription_current_period_end: null,
+          created_at: new Date().toISOString(),
+        });
+        tables.connection_members.push({
+          id: uuid(),
+          connection_id: targetConnectionId,
+          user_id: userId,
+          role: "owner",
+          status: "accepted",
+          invited_by: userId,
+          accepted_at: new Date().toISOString(),
+          joined_at: new Date().toISOString(),
+        });
 
         const invite = {
           id: uuid(),
@@ -639,10 +634,6 @@ function findUsableInvite(tables: Record<string, any[]>, inviteCode: string) {
 function validateInviteForUser(tables: Record<string, any[]>, invite: any, userId: string) {
   if (invite.created_by === userId) {
     return new Error("You cannot accept your own invite.");
-  }
-  const existingMembership = tables.connection_members.find((row) => row.user_id === userId && row.status === "accepted");
-  if (existingMembership && existingMembership.connection_id !== invite.connection_id) {
-    return new Error("You already have an accepted connection.");
   }
   return null;
 }

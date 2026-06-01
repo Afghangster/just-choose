@@ -2,16 +2,20 @@ import type { AppRepository, RemoteAppState } from "../../services/supabaseRepos
 import { setAppRepositoryForTesting } from "../../services/supabaseRepository";
 import { useAppStore } from "../appStore";
 
-const aliceId = "00000000-0000-4000-8000-000000000001";
-const bobId = "00000000-0000-4000-8000-000000000002";
+const lisaId = "00000000-0000-4000-8000-000000000001";
+const noahId = "00000000-0000-4000-8000-000000000002";
+const charlieId = "00000000-0000-4000-8000-000000000003";
 const connectionId = "00000000-0000-4000-8000-000000000010";
+const secondConnectionId = "00000000-0000-4000-8000-000000000020";
 const decisionId = "00000000-0000-4000-8000-000000000030";
+const secondDecisionId = "00000000-0000-4000-8000-000000000050";
 
 describe("useAppStore simplified remote flow", () => {
   beforeEach(() => {
     useAppStore.setState({
       authUserId: null,
       profile: null,
+      connections: [],
       connectedProfile: null,
       connection: null,
       pendingConnectionRequests: [],
@@ -28,7 +32,7 @@ describe("useAppStore simplified remote flow", () => {
     setAppRepositoryForTesting(repository);
 
     const preview = await useAppStore.getState().previewRemoteConnectionInvite("testduo");
-    expect(preview.inviterDisplayName).toBe("Alice");
+    expect(preview.inviterDisplayName).toBe("Lisa");
     expect(repository.previewConnectionInvite).toHaveBeenCalledWith("testduo");
     expect(useAppStore.getState().connection).toBeNull();
 
@@ -43,9 +47,9 @@ describe("useAppStore simplified remote flow", () => {
 
     await useAppStore.getState().hydrateFromRemote();
 
-    expect(useAppStore.getState().profile?.id).toBe(aliceId);
+    expect(useAppStore.getState().profile?.id).toBe(lisaId);
     expect(useAppStore.getState().connection?.id).toBe(connectionId);
-    expect(useAppStore.getState().connectedProfile?.id).toBe(bobId);
+    expect(useAppStore.getState().connectedProfile?.id).toBe(noahId);
     expect(useAppStore.getState().remoteStatus).toBe("ready");
   });
 
@@ -76,7 +80,7 @@ describe("useAppStore simplified remote flow", () => {
       response: {
         id: "00000000-0000-4000-8000-000000000040",
         decisionId,
-        responderId: bobId,
+        responderId: noahId,
         selectedOptionId: "00000000-0000-4000-8000-000000000032",
         responseType: "selected_option",
         comment: "This one",
@@ -93,32 +97,105 @@ describe("useAppStore simplified remote flow", () => {
     expect(useAppStore.getState().decisions[0].status).toBe("answered");
     expect(useAppStore.getState().decisions[0].response?.comment).toBe("This one");
   });
+
+  test("leaving one connection keeps the other connection state", async () => {
+    const state = remoteState();
+    const multiConnectionState: RemoteAppState = {
+      ...state,
+      connections: [
+        ...state.connections,
+        {
+          connection: {
+            ...state.connection!,
+            id: secondConnectionId,
+            inviteCode: "SECOND",
+          },
+          connectedProfile: { id: charlieId, displayName: "Charlie", avatarUrl: null },
+        },
+      ],
+      pendingConnectionRequests: [
+        {
+          connectionId,
+          requesterId: "00000000-0000-4000-8000-000000000091",
+          requesterDisplayName: "Pending Noah",
+          requestedAt: "2026-05-25T09:00:00.000Z",
+        },
+        {
+          connectionId: secondConnectionId,
+          requesterId: "00000000-0000-4000-8000-000000000092",
+          requesterDisplayName: "Pending Charlie",
+          requestedAt: "2026-05-25T09:00:00.000Z",
+        },
+      ],
+      decisions: [
+        state.decisions[0],
+        {
+          ...state.decisions[0],
+          id: secondDecisionId,
+          connectionId: secondConnectionId,
+          assignedTo: charlieId,
+          title: "Coffee or Tea?",
+        },
+      ],
+    };
+    useAppStore.setState(multiConnectionState);
+    const repository = fakeRepository(multiConnectionState);
+    setAppRepositoryForTesting(repository);
+
+    await useAppStore.getState().leaveConnection(connectionId);
+
+    expect(repository.stopConnection).toHaveBeenCalledWith(connectionId);
+    expect(useAppStore.getState().connections.map((item) => item.connection.id)).toEqual([secondConnectionId]);
+    expect(useAppStore.getState().connection?.id).toBe(secondConnectionId);
+    expect(useAppStore.getState().connectedProfile?.id).toBe(charlieId);
+    expect(useAppStore.getState().decisions.map((decision) => decision.id)).toEqual([secondDecisionId]);
+    expect(useAppStore.getState().pendingConnectionRequests.map((request) => request.connectionId)).toEqual([
+      secondConnectionId,
+    ]);
+  });
 });
 
 function remoteState(overrides: Partial<RemoteAppState["decisions"][number]> = {}): RemoteAppState {
   return {
-    authUserId: aliceId,
-    profile: { id: aliceId, displayName: "Alice", avatarUrl: null },
-    connectedProfile: { id: bobId, displayName: "Bob", avatarUrl: null },
+    authUserId: lisaId,
+    profile: { id: lisaId, displayName: "Lisa", avatarUrl: null },
+    connectedProfile: { id: noahId, displayName: "Noah", avatarUrl: null },
     connection: {
       id: connectionId,
       inviteCode: "TESTDUO",
       inviteExpiresAt: null,
-      createdBy: aliceId,
-      billingOwnerUserId: aliceId,
+      createdBy: lisaId,
+      billingOwnerUserId: lisaId,
       subscriptionStatus: "active",
       plan: "connection",
       premiumEnabled: true,
       subscriptionCurrentPeriodEnd: null,
       createdAt: "2026-05-25T09:00:00.000Z",
     },
+    connections: [
+      {
+        connection: {
+          id: connectionId,
+          inviteCode: "TESTDUO",
+          inviteExpiresAt: null,
+          createdBy: lisaId,
+          billingOwnerUserId: lisaId,
+          subscriptionStatus: "active",
+          plan: "connection",
+          premiumEnabled: true,
+          subscriptionCurrentPeriodEnd: null,
+          createdAt: "2026-05-25T09:00:00.000Z",
+        },
+        connectedProfile: { id: noahId, displayName: "Noah", avatarUrl: null },
+      },
+    ],
     pendingConnectionRequests: [],
     decisions: [
       {
         id: decisionId,
         connectionId,
-        createdBy: aliceId,
-        assignedTo: bobId,
+        createdBy: lisaId,
+        assignedTo: noahId,
         title: "Green sofa or Blue sofa?",
         note: null,
         status: overrides.response ? "answered" : "pending",
@@ -152,7 +229,7 @@ function fakeRepository(state: RemoteAppState): AppRepository {
   const response = state.decisions[0].response ?? {
     id: "00000000-0000-4000-8000-000000000040",
     decisionId,
-    responderId: bobId,
+    responderId: noahId,
     selectedOptionId: null,
     responseType: "cant_choose" as const,
     comment: null,
@@ -164,7 +241,7 @@ function fakeRepository(state: RemoteAppState): AppRepository {
     signUpWithEmail: jest.fn(async () => ({
       userId: state.authUserId!,
       needsEmailConfirmation: false,
-      email: "alice@example.com",
+      email: "lisa@example.com",
     })),
     resendSignupConfirmation: jest.fn(async () => undefined),
     startAppleOAuthSignIn: jest.fn(async () => ({ url: "https://example.com/auth" })),
@@ -173,12 +250,13 @@ function fakeRepository(state: RemoteAppState): AppRepository {
     signInWithAppleIdentityToken: jest.fn(async () => ({ userId: state.authUserId! })),
     signInWithPhoneOtp: jest.fn(async () => undefined),
     verifyPhoneOtp: jest.fn(async () => ({ userId: state.authUserId! })),
+    updatePassword: jest.fn(async () => undefined),
     loadCurrentUserAppState: jest.fn(async () => state),
     upsertProfile: jest.fn(async () => state),
     createConnectionInvite: jest.fn(async () => state),
     previewConnectionInvite: jest.fn(async () => ({
       code: "TESTDUO",
-      inviterDisplayName: "Alice",
+      inviterDisplayName: "Lisa",
       expiresAt: "2999-05-25T10:00:00.000Z",
     })),
     acceptConnectionInvite: jest.fn(async () => state),
@@ -189,7 +267,7 @@ function fakeRepository(state: RemoteAppState): AppRepository {
     answerDecision: jest.fn(async () => response),
     savePushToken: jest.fn(async () => undefined),
     updateConnectionDisplayName: jest.fn(async () => state),
-    stopConnection: jest.fn(async () => ({ ...state, connection: null, connectedProfile: null, decisions: [] })),
+    stopConnection: jest.fn(async () => ({ ...state, connections: [], connection: null, connectedProfile: null, decisions: [] })),
     deleteDecision: jest.fn(async () => undefined),
     signOut: jest.fn(async () => undefined),
     deleteAccount: jest.fn(async () => undefined),

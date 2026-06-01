@@ -14,9 +14,12 @@ export type RootStackParamList = {
   AnswerDecision: { decisionId: string };
   DecisionResult: { decisionId: string };
   Settings: undefined;
+  Profile: undefined;
+  Notifications: undefined;
+  DeleteAccount: undefined;
+  Support: undefined;
   SafetyPrivacy: undefined;
-  ManageConnections: undefined;
-  LeaveConnectionConfirm: undefined;
+  MyPeople: undefined;
   ThemeSelection: undefined;
 };
 

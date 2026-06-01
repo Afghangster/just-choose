@@ -8,7 +8,7 @@
     "scheme": "justchoose",
     "userInterfaceStyle": "light",
     "ios": {
-      "supportsTablet": true,
+      "supportsTablet": false,
       "usesAppleSignIn": true,
       "bundleIdentifier": "app.justchoose.mobile",
       "buildNumber": "1",

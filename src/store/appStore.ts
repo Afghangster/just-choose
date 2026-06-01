@@ -1,5 +1,6 @@
 import { create } from "zustand";
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { Platform } from "react-native";
 
 import {
   appRepository,
@@ -9,7 +10,7 @@ import {
   type RemoteResponseInput,
 } from "../services/supabaseRepository";
 import { registerForPushNotifications } from "../services/notifications";
-import type { Connection, ConnectionRequest, Decision, DecisionResponse, Gender, Profile } from "../types/domain";
+import type { Connection, ConnectionRequest, ConnectionSummary, Decision, DecisionResponse, Gender, Profile } from "../types/domain";
 type DraftOption = { title: string; imageUrl: string | null; imagePath: string | null };
 
 type AppState = {
@@ -20,6 +21,7 @@ type AppState = {
   clearDraft: () => void;
   authUserId: string | null;
   profile: Profile | null;
+  connections: ConnectionSummary[];
   connectedProfile: Profile | null;
   connection: Connection | null;
   pendingConnectionRequests: ConnectionRequest[];
@@ -29,8 +31,11 @@ type AppState = {
   remoteStatus: "idle" | "loading" | "ready" | "error";
   remoteError: string | null;
   savedDecisionIds: string[];
+  dismissedDecisionIds: string[];
   loadSavedDecisions: () => Promise<void>;
   toggleSavedDecision: (decisionId: string) => Promise<void>;
+  loadDismissedDecisions: () => Promise<void>;
+  dismissDecision: (decisionId: string) => Promise<void>;
   setAuthUser: (userId: string) => void;
   applyRemoteState: (remoteState: RemoteAppState) => void;
   hydrateFromRemote: () => Promise<RemoteAppState>;
@@ -45,10 +50,10 @@ type AppState = {
   createRemoteDecision: (input: RemoteDecisionInput) => Promise<Decision>;
   deleteRemoteDecision: (decisionId: string) => Promise<void>;
   answerRemoteDecision: (decisionId: string, response: RemoteResponseInput) => Promise<DecisionResponse>;
-  registerCurrentDeviceForPush: () => Promise<void>;
+  registerCurrentDeviceForPush: () => Promise<boolean>;
   refreshRemoteState: () => Promise<RemoteAppState>;
-  updateConnectionAlias: (displayName: string, avatarUrl?: string | null, avatarPath?: string | null) => Promise<RemoteAppState>;
-  leaveConnection: () => Promise<void>;
+  updateConnectionAlias: (displayName: string, connectionId?: string, targetUserId?: string) => Promise<RemoteAppState>;
+  leaveConnection: (connectionId?: string) => Promise<void>;
   signOut: () => Promise<void>;
   deleteAccount: () => Promise<void>;
 };
@@ -59,6 +64,7 @@ const makeId = (prefix: string) =>
 export const useAppStore = create<AppState>((set, get) => ({
   authUserId: null,
   profile: null,
+  connections: [],
   connectedProfile: null,
   connection: null,
   pendingConnectionRequests: [],
@@ -68,6 +74,7 @@ export const useAppStore = create<AppState>((set, get) => ({
   remoteStatus: "idle",
   remoteError: null,
   savedDecisionIds: [],
+  dismissedDecisionIds: [],
   draftNote: "",
   draftOptions: [
     { title: "", imageUrl: null, imagePath: null },
@@ -94,12 +101,13 @@ export const useAppStore = create<AppState>((set, get) => ({
     set({
       authUserId: remoteState.authUserId,
       profile: remoteState.profile,
+      connections: remoteState.connections,
       connectedProfile: remoteState.connectedProfile,
       connection: remoteState.connection,
       pendingConnectionRequests: remoteState.pendingConnectionRequests,
       decisions: remoteState.decisions,
       connectionPreview: null,
-      pendingInviteCode: remoteState.connection && remoteState.connectedProfile ? null : get().pendingInviteCode,
+      pendingInviteCode: remoteState.connections.some((item) => item.connectedProfile) ? null : get().pendingInviteCode,
       remoteStatus: "ready",
       remoteError: null,
     });
@@ -111,6 +119,7 @@ export const useAppStore = create<AppState>((set, get) => ({
       const remoteState = await appRepository.loadCurrentUserAppState();
       get().applyRemoteState(remoteState);
       await get().loadSavedDecisions();
+      await get().loadDismissedDecisions();
       return remoteState;
     } catch (error) {
       const message = error instanceof Error ? error.message : "Unable to load account.";
@@ -262,19 +271,28 @@ export const useAppStore = create<AppState>((set, get) => ({
   registerCurrentDeviceForPush: async () => {
     const profile = get().profile;
     if (!profile) {
-      return;
+      return false;
     }
     const token = await registerForPushNotifications();
     if (token) {
-      await appRepository.savePushToken(profile.id, token);
+      await appRepository.savePushToken(profile.id, token, Platform.OS);
+      return true;
     }
+    return false;
   },
 
   refreshRemoteState: async () => get().hydrateFromRemote(),
 
-  updateConnectionAlias: async (displayName, avatarUrl, avatarPath) => {
-    const connection = get().connection;
-    const connectedProfile = get().connectedProfile;
+  updateConnectionAlias: async (displayName, connectionId, targetUserId) => {
+    const selectedConnection =
+      (connectionId
+        ? get().connections.find((item) => item.connection.id === connectionId)
+        : get().connections.find((item) => item.connection.id === get().connection?.id)) ?? null;
+    const connection = selectedConnection?.connection ?? get().connection;
+    const connectedProfile =
+      (targetUserId && selectedConnection?.connectedProfile?.id === targetUserId
+        ? selectedConnection.connectedProfile
+        : selectedConnection?.connectedProfile) ?? get().connectedProfile;
     if (!connection || !connectedProfile) {
       throw new Error("Create a connection first.");
     }
@@ -284,8 +302,6 @@ export const useAppStore = create<AppState>((set, get) => ({
         connectionId: connection.id,
         targetUserId: connectedProfile.id,
         displayName,
-        avatarUrl,
-        avatarPath,
       });
       get().applyRemoteState(remoteState);
       return remoteState;
@@ -296,18 +312,28 @@ export const useAppStore = create<AppState>((set, get) => ({
     }
   },
 
-  leaveConnection: async () => {
-    const connection = get().connection;
+  leaveConnection: async (connectionId) => {
+    const connection =
+      (connectionId ? get().connections.find((item) => item.connection.id === connectionId)?.connection : null) ??
+      get().connection;
     set({ remoteStatus: "loading", remoteError: null });
     try {
       if (connection) {
         await appRepository.stopConnection(connection.id);
       }
+      const remainingConnections = get().connections.filter((item) => item.connection.id !== connection?.id);
+      const nextConnection = remainingConnections.find((item) => item.connectedProfile) ?? remainingConnections[0] ?? null;
+      const removedConnectionId = connection?.id ?? null;
       set({
-        connection: null,
-        connectedProfile: null,
-        pendingConnectionRequests: [],
-        decisions: [],
+        connections: remainingConnections,
+        connection: nextConnection?.connection ?? null,
+        connectedProfile: nextConnection?.connectedProfile ?? null,
+        pendingConnectionRequests: removedConnectionId
+          ? get().pendingConnectionRequests.filter((request) => request.connectionId !== removedConnectionId)
+          : get().pendingConnectionRequests,
+        decisions: removedConnectionId
+          ? get().decisions.filter((decision) => decision.connectionId !== removedConnectionId)
+          : get().decisions,
         connectionPreview: null,
         pendingInviteCode: null,
         remoteStatus: "ready",
@@ -327,6 +353,7 @@ export const useAppStore = create<AppState>((set, get) => ({
       set({
         authUserId: null,
         profile: null,
+        connections: [],
         connectedProfile: null,
         connection: null,
         pendingConnectionRequests: [],
@@ -351,6 +378,7 @@ export const useAppStore = create<AppState>((set, get) => ({
       set({
         authUserId: null,
         profile: null,
+        connections: [],
         connectedProfile: null,
         connection: null,
         pendingConnectionRequests: [],
@@ -389,4 +417,28 @@ export const useAppStore = create<AppState>((set, get) => ({
       console.warn("Failed to save decisions", error);
     }
   },
+
+  loadDismissedDecisions: async () => {
+    try {
+      const stored = await AsyncStorage.getItem("dismissed_decisions");
+      if (stored) {
+        set({ dismissedDecisionIds: JSON.parse(stored) });
+      }
+    } catch (error) {
+      console.warn("Failed to load dismissed decisions", error);
+    }
+  },
+
+  dismissDecision: async (decisionId) => {
+    const current = get().dismissedDecisionIds;
+    if (current.includes(decisionId)) return;
+    const next = [...current, decisionId];
+    set({ dismissedDecisionIds: next });
+    try {
+      await AsyncStorage.setItem("dismissed_decisions", JSON.stringify(next));
+    } catch (error) {
+      console.warn("Failed to dismiss decision", error);
+    }
+  },
 }));
+
